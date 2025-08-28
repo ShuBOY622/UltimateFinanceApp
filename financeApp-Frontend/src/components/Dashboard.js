@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -7,11 +8,13 @@ import {
   Typography,
   Avatar,
   Chip,
-  IconButton,
   Button,
   LinearProgress,
   Alert,
   Skeleton,
+  Container,
+  Fab,
+  Tooltip,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -24,9 +27,16 @@ import {
   ShowChart,
   Notifications,
   EmojiEvents,
+  AutoGraph,
+  FileUpload,
+  Star,
+  Add,
+  Timeline,
+  Upload,
+  CloudUpload,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, AreaChart, Area } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { alpha } from '@mui/material/styles';
 import { useAuth } from '../contexts/AuthContext';
 import { transactionAPI, investmentAPI, budgetAPI, goalAPI, advisorAPI } from '../services/api';
@@ -36,7 +46,8 @@ import SpendingChart from './Charts/SpendingChart';
 const COLORS = ['#667eea', '#764ba2', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
 
 const Dashboard = () => {
-  const { user, userName } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     summary: null,
@@ -164,7 +175,7 @@ const Dashboard = () => {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip
+        <RechartsTooltip
           formatter={(value) => formatCurrency(value)}
           labelStyle={{ color: '#1e293b' }}
         />
@@ -199,6 +210,19 @@ const Dashboard = () => {
     return 'Good evening';
   };
 
+  // Quick action handlers for flagship features
+  const handleQuickInvest = () => {
+    navigate('/investments');
+  };
+
+  const handleQuickUpload = () => {
+    navigate('/transactions', { state: { fromDashboard: true } });
+  };
+
+  const handleAddTransaction = () => {
+    navigate('/transactions', { state: { fromDashboard: true } });
+  };
+
   return (
     <Box sx={{ p: 3, maxWidth: '1400px', margin: '0 auto' }}>
       {/* Welcome Header */}
@@ -214,7 +238,7 @@ const Dashboard = () => {
                 {welcomeMessage()}, {user?.firstName}! 👋
               </Typography>
               <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
-                Here's your financial overview for today
+                Your AI-Powered Financial Command Center
               </Typography>
             </Box>
             <Button
@@ -227,6 +251,207 @@ const Dashboard = () => {
             </Button>
           </Box>
         </Box>
+      </motion.div>
+
+      {/* Flagship Features Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
+        <Container maxWidth="xl">
+          <Grid container spacing={3} mb={4}>
+            <Grid item xs={12} md={6}>
+              <motion.div
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card 
+                  sx={{ 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    minHeight: 220,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: 'none',
+                    '&:hover': {
+                      boxShadow: '0 20px 40px rgba(102, 126, 234, 0.4)',
+                      transform: 'translateY(-4px)',
+                    },
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                  onClick={handleQuickInvest}
+                >
+                  <CardContent sx={{ position: 'relative', zIndex: 2, p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <AutoGraph sx={{ fontSize: 40, mr: 2 }} />
+                      <Box>
+                        <Typography variant="h5" fontWeight="bold">
+                          Real-Time Investment Tracking
+                        </Typography>
+                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                          Live portfolio • Investment analytics
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    {data.portfolio && data.portfolio.totalHoldings > 0 ? (
+                      <Box mt={3}>
+                        <Grid container spacing={2}>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" sx={{ opacity: 0.8 }}>Portfolio Value</Typography>
+                            <Typography variant="h6" fontWeight="bold">
+                              {formatCurrency(data.portfolio.currentValue)}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" sx={{ opacity: 0.8 }}>Today's P&L</Typography>
+                            <Typography 
+                              variant="h6" 
+                              fontWeight="bold"
+                              color={data.portfolio.totalGainLoss >= 0 ? '#4caf50' : '#ff5252'}
+                            >
+                              {data.portfolio.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(data.portfolio.totalGainLoss || 0)}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                        <Box display="flex" alignItems="center" mt={2}>
+                          <Chip 
+                            label={`${data.portfolio.totalHoldings} Active Holdings`}
+                            sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                            size="small"
+                          />
+                          <Star sx={{ ml: 1, color: '#FFD700' }} />
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Box mt={3}>
+                        <Typography variant="body1" sx={{ opacity: 0.9, mb: 2 }}>
+                          🚀 Start tracking your investments with live market data
+                        </Typography>
+                        <Button 
+                          variant="contained" 
+                          sx={{ 
+                            backgroundColor: 'rgba(255,255,255,0.2)', 
+                            '&:hover': { backgroundColor: 'rgba(255,255,255,0.3)' },
+                            border: '1px solid rgba(255,255,255,0.3)'
+                          }}
+                          startIcon={<Add />}
+                        >
+                          Add First Investment
+                        </Button>
+                      </Box>
+                    )}
+                  </CardContent>
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -50,
+                      right: -50,
+                      width: 150,
+                      height: 150,
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: '50%',
+                      zIndex: 1
+                    }}
+                  />
+                </Card>
+              </motion.div>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <motion.div
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card 
+                  sx={{ 
+                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    minHeight: 220,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: 'none',
+                    '&:hover': {
+                      boxShadow: '0 20px 40px rgba(240, 147, 251, 0.4)',
+                      transform: 'translateY(-4px)',
+                    },
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                  onClick={handleQuickUpload}
+                >
+                  <CardContent sx={{ position: 'relative', zIndex: 2, p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <FileUpload sx={{ fontSize: 40, mr: 2 }} />
+                      <Box>
+                        <Typography variant="h5" fontWeight="bold">
+                          Smart PDF Parser
+                        </Typography>
+                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                           Instant extraction
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Box mt={3}>
+                      <Typography variant="body1" sx={{ opacity: 0.9, mb: 2 }}>
+                        📄 Upload bank statements or Upi statements and extract transactions 
+                      </Typography>
+                      <Box display="flex" gap={1} flexWrap="wrap" mb={2}>
+                        <Chip 
+                          label="PDF Parser"
+                          sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                          size="small"
+                        />
+                        <Chip 
+                          label="Auto Extract"
+                          sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                          size="small"
+                        />
+                        <Chip 
+                          label="No need to log trx daily"
+                          sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                          size="small"
+                        />
+                      </Box>
+                      <Button 
+                        variant="contained" 
+                        sx={{ 
+                          backgroundColor: 'rgba(255,255,255,0.2)', 
+                          '&:hover': { backgroundColor: 'rgba(255,255,255,0.3)' },
+                          border: '1px solid rgba(255,255,255,0.3)'
+                        }}
+                        startIcon={<Upload />}
+                      >
+                        Parse Documents
+                      </Button>
+                    </Box>
+                  </CardContent>
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -50,
+                      right: -50,
+                      width: 150,
+                      height: 150,
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: '50%',
+                      zIndex: 1
+                    }}
+                  />
+                </Card>
+              </motion.div>
+            </Grid>
+          </Grid>
+        </Container>
       </motion.div>
 
       {/* Budget Alert */}
@@ -259,7 +484,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Net Worth"
-            value={formatCurrency(data.summary?.netWorth || data.summary?.netBalance)}
+            value={formatCurrency((data.summary?.netBalance || 0) + (data.portfolio?.currentValue || 0))}
             change={12.5}
             changeType="increase"
             icon={AccountBalance}
@@ -270,7 +495,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Cash Balance"
-            value={formatCurrency(data.summary?.cashBalance)}
+            value={formatCurrency(data.summary?.cashBalance || data.summary?.netBalance)}
             change={8.2}
             changeType="increase"
             icon={AttachMoney}
@@ -302,12 +527,12 @@ const Dashboard = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Investment Value"
-            value={formatCurrency(data.summary?.investmentValue)}
-            change={15.7}
-            changeType="increase"
-            icon={ShowChart}
-            color="#f59e0b"
+            title="Investment Returns"
+            value={data.portfolio ? formatCurrency(data.portfolio.totalGainLoss || 0) : "₹0"}
+            change={data.portfolio?.gainLossPercentage || 0}
+            changeType={data.portfolio?.totalGainLoss >= 0 ? "increase" : "decrease"}
+            icon={Timeline}
+            color={data.portfolio?.totalGainLoss >= 0 ? "#4caf50" : "#f44336"}
             delay={0.4}
           />
         </Grid>
@@ -367,12 +592,17 @@ const Dashboard = () => {
                     height="200px"
                     flexDirection="column"
                   >
-                    <ShowChart sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                    <Typography sx={{ color: 'text.secondary' }}>
-                      No investments yet
+                    <AutoGraph sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                    <Typography sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
+                      Start tracking investments with live market data
                     </Typography>
-                    <Button variant="contained" sx={{ mt: 2 }}>
-                      Start Investing
+                    <Button 
+                      variant="contained" 
+                      sx={{ mt: 1 }}
+                      onClick={handleQuickInvest}
+                      startIcon={<Add />}
+                    >
+                      Add First Investment
                     </Button>
                   </Box>
                 )}
@@ -636,13 +866,28 @@ const Dashboard = () => {
                     height="150px"
                     flexDirection="column"
                   >
-                    <Notifications sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                    <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-                      No recent transactions
+                    <FileUpload sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                    <Typography sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
+                      Add transactions manually or view existing ones
                     </Typography>
-                    <Button variant="contained">
-                      Add Transaction
-                    </Button>
+                    <Box display="flex" gap={1}>
+                      <Button 
+                        variant="outlined"
+                        size="small"
+                        onClick={handleAddTransaction}
+                        startIcon={<Add />}
+                      >
+                        Add Manual
+                      </Button>
+                      <Button 
+                        variant="contained"
+                        size="small"
+                        onClick={handleQuickUpload}
+                        startIcon={<Timeline />}
+                      >
+                        View Transactions
+                      </Button>
+                    </Box>
                   </Box>
                 )}
               </CardContent>
@@ -650,6 +895,47 @@ const Dashboard = () => {
           </motion.div>
         </Grid>
       </Grid>
+      
+      {/* Floating Action Buttons for Quick Actions */}
+      <Box sx={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1000 }}>
+        <Box display="flex" flexDirection="column" gap={2}>
+          <Tooltip title="View Transactions" placement="left">
+            <Fab
+              color="secondary"
+              onClick={handleQuickUpload}
+              sx={{ 
+                background: 'linear-gradient(45deg, #f093fb 30%, #f5576c 90%)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #f5576c 30%, #f093fb 90%)',
+                  transform: 'scale(1.1)',
+                },
+                transition: 'all 0.3s ease-in-out',
+                boxShadow: '0 8px 25px rgba(240, 147, 251, 0.4)'
+              }}
+            >
+              <Timeline />
+            </Fab>
+          </Tooltip>
+          
+          <Tooltip title="View Portfolio" placement="left">
+            <Fab
+              color="primary"
+              onClick={handleQuickInvest}
+              sx={{ 
+                background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #764ba2 30%, #667eea 90%)',
+                  transform: 'scale(1.1)',
+                },
+                transition: 'all 0.3s ease-in-out',
+                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)'
+              }}
+            >
+              <AutoGraph />
+            </Fab>
+          </Tooltip>
+        </Box>
+      </Box>
     </Box>
   );
 };

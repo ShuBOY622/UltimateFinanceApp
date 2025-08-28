@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import {
@@ -61,6 +62,7 @@ import SpendingChart from '../Charts/SpendingChart';
 import StatementUpload from '../Statements/StatementUpload';
 
 const Transactions = () => {
+  const location = useLocation();
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +75,7 @@ const Transactions = () => {
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [tabValue, setTabValue] = useState(0);
   const [showStatementUpload, setShowStatementUpload] = useState(false);
+  const [showPulseEffect, setShowPulseEffect] = useState(false);
 
   const [formData, setFormData] = useState({
     amount: '',
@@ -113,6 +116,19 @@ const Transactions = () => {
   useEffect(() => {
     fetchTransactions();
   }, []);
+
+  // Check if user came from dashboard and trigger pulse effect
+  useEffect(() => {
+    if (location.state?.fromDashboard) {
+      setShowPulseEffect(true);
+      // Stop pulse effect after 3 seconds
+      const timer = setTimeout(() => {
+        setShowPulseEffect(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     filterTransactions();
@@ -258,16 +274,42 @@ const Transactions = () => {
             </Typography>
           </Box>
           <Box display="flex" gap={2}>
-            <Button
-              variant="outlined"
-              startIcon={<CloudUpload />}
-              onClick={() => {
-                console.log('Upload Statement button clicked');
-                setShowStatementUpload(true);
+            <motion.div
+              animate={showPulseEffect ? {
+                scale: [1, 1.05, 1],
+                boxShadow: [
+                  '0 0 0 0 rgba(102, 126, 234, 0.7)',
+                  '0 0 0 10px rgba(102, 126, 234, 0)',
+                  '0 0 0 0 rgba(102, 126, 234, 0)'
+                ]
+              } : {}}
+              transition={{
+                duration: 1,
+                repeat: showPulseEffect ? Infinity : 0,
+                ease: "easeInOut"
               }}
+              style={{ borderRadius: '4px' }}
             >
-              Upload Statement
-            </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CloudUpload />}
+                onClick={() => {
+                  console.log('Upload Statement button clicked');
+                  setShowStatementUpload(true);
+                  setShowPulseEffect(false); // Stop pulse when clicked
+                }}
+                sx={{
+                  ...(showPulseEffect && {
+                    background: 'linear-gradient(45deg, rgba(102, 126, 234, 0.1) 30%, rgba(118, 75, 162, 0.1) 90%)',
+                    borderColor: '#667eea',
+                    color: '#667eea',
+                    fontWeight: 'bold'
+                  })
+                }}
+              >
+                Parse Documents
+              </Button>
+            </motion.div>
             <Button
               variant="contained"
               startIcon={<Add />}

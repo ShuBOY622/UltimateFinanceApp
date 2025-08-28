@@ -12,6 +12,7 @@ import {
   AccountBalance as BudgetIcon,
   Flag as GoalsIcon,
   Receipt as TransactionsIcon,
+  Upload as StatementsIcon,
   Logout as LogoutIcon,
   Person as PersonIcon,
   Close as CloseIcon
@@ -25,6 +26,7 @@ import Investments from './components/Investments/Investments';
 import Budget from './components/Budget/Budget';
 import Goals from './components/Goals/Goals';
 import Transactions from './components/Transactions/Transactions';
+import StatementUpload from './components/Statements/StatementUpload';
 
 // Context
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -94,6 +96,7 @@ function AuthenticatedApp() {
     { text: 'Budget', icon: <BudgetIcon />, path: '/budget' },
     { text: 'Goals', icon: <GoalsIcon />, path: '/goals' },
     { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
+    { text: 'Statements', icon: <StatementsIcon />, path: '/statements' },
   ];
 
   const drawerWidth = 280;
@@ -365,6 +368,28 @@ function AuthenticatedApp() {
                     transition={{ duration: 0.3 }}
                   >
                     <Transactions />
+                  </motion.div>
+                } 
+              />
+              <Route 
+                path="/statements" 
+                element={
+                  <motion.div
+                    key="statements"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Box sx={{ maxWidth: '1200px', margin: '0 auto', p: 3 }}>
+                      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ color: 'text.primary' }}>
+                        Upload Bank Statements
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
+                        Parse and import transactions from your bank statements automatically
+                      </Typography>
+                      <StatementUpload />
+                    </Box>
                   </motion.div>
                 } 
               />

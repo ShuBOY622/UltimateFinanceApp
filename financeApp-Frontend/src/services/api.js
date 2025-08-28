@@ -3,7 +3,7 @@ import { toast } from 'react-hot-toast';
 
 // Create axios instance with enhanced configuration
 const api = axios.create({
-  baseURL: process.env.NODE_ENV === 'production' ? '/api' : '/api',
+  baseURL: process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:8080/api',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

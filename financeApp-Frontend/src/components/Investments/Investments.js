@@ -62,16 +62,29 @@ const StyledCard = styled(Card)(({ theme, profit }) => ({
   transition: 'all 0.3s ease-in-out',
   transform: 'translateY(0)',
   cursor: 'pointer',
+  position: 'relative',
+  overflow: 'hidden',
   '&:hover': {
     transform: 'translateY(-4px)',
     boxShadow: theme.shadows[8],
   },
   border: profit !== undefined ? 
     `2px solid ${profit ? theme.palette.success.main : theme.palette.error.main}` : 
-    'none',
+    `1px solid ${theme.palette.divider}`,
   background: profit !== undefined ?
-    `linear-gradient(135deg, ${profit ? theme.palette.success.light + '10' : theme.palette.error.light + '10'}, ${theme.palette.background.paper})` :
+    `linear-gradient(135deg, ${profit ? 'rgba(76, 175, 80, 0.05)' : 'rgba(244, 67, 54, 0.05)'}, ${theme.palette.background.paper})` :
     theme.palette.background.paper,
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: profit !== undefined ?
+      (profit ? 'linear-gradient(90deg, #4caf50 0%, #66bb6a 100%)' : 'linear-gradient(90deg, #f44336 0%, #ef5350 100%)') :
+      'transparent',
+  },
 }));
 
 const AnimatedFab = styled(Fab)(({ theme }) => ({
@@ -571,14 +584,20 @@ const Investments = () => {
               </Box>
             ) : (
               <Grid container spacing={2}>
-                {investments.map((investment, index) => (
+                {investments.map((investment, index) => {
+                  // Calculate profit on frontend to ensure correct display
+                  const calculatedProfit = investment.currentValue > investment.totalInvestment;
+                  const actualGainLoss = investment.currentValue - investment.totalInvestment;
+                  const actualGainLossPercentage = ((actualGainLoss / investment.totalInvestment) * 100);
+                  
+                  return (
                   <Grid item xs={12} md={6} lg={4} key={investment.id}>
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <StyledCard profit={investment.isProfit}>
+                      <StyledCard profit={calculatedProfit}>
                         <CardContent>
                           <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                             <Box>
@@ -727,7 +746,13 @@ const Investments = () => {
                             <Typography variant="body2" color="text.secondary">
                               Current Value:
                             </Typography>
-                            <Typography variant="body2" fontWeight="bold">
+                            <Typography 
+                              variant="body2" 
+                              fontWeight="bold"
+                              sx={{
+                                color: calculatedProfit ? '#4caf50' : '#f44336'
+                              }}
+                            >
                               {formatCurrency(investment.currentValue)}
                             </Typography>
                           </Box>
@@ -736,33 +761,64 @@ const Investments = () => {
                             <Typography variant="body2" color="text.secondary">
                               Gain/Loss:
                             </Typography>
-                            <Typography
-                              variant="body2"
-                              fontWeight="bold"
-                              color={investment.isProfit ? '#4caf50' : '#f44336'}
-                            >
-                              {formatCurrency(investment.gainLoss)} ({investment.gainLossPercentage?.toFixed(2)}%)
-                            </Typography>
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                              {calculatedProfit ? (
+                                <TrendingUp sx={{ fontSize: 16, color: '#4caf50' }} />
+                              ) : (
+                                <TrendingDown sx={{ fontSize: 16, color: '#f44336' }} />
+                              )}
+                              <Typography
+                                variant="body2"
+                                fontWeight="bold"
+                                sx={{
+                                  color: calculatedProfit ? '#4caf50' : '#f44336',
+                                  backgroundColor: calculatedProfit ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: `1px solid ${calculatedProfit ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`
+                                }}
+                              >
+                                {calculatedProfit ? '+' : ''}{formatCurrency(actualGainLoss)} ({actualGainLossPercentage.toFixed(2)}%)
+                              </Typography>
+                            </Box>
                           </Box>
 
-                          <LinearProgress
-                            variant="determinate"
-                            value={Math.min(Math.abs(investment.gainLossPercentage || 0), 100)}
-                            sx={{
-                              height: 8,
-                              borderRadius: 4,
-                              backgroundColor: '#e0e0e0',
-                              '& .MuiLinearProgress-bar': {
-                                backgroundColor: investment.isProfit ? '#4caf50' : '#f44336',
+                          <Box sx={{ mt: 2 }}>
+                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                              <Typography variant="caption" color="text.secondary">
+                                Performance
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                fontWeight="bold"
+                                sx={{ color: calculatedProfit ? '#4caf50' : '#f44336' }}
+                              >
+                                {calculatedProfit ? '▲' : '▼'} {Math.abs(actualGainLossPercentage).toFixed(2)}%
+                              </Typography>
+                            </Box>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(Math.abs(actualGainLossPercentage), 100)}
+                              sx={{
+                                height: 8,
                                 borderRadius: 4,
-                              },
-                            }}
-                          />
+                                backgroundColor: calculatedProfit ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)',
+                                '& .MuiLinearProgress-bar': {
+                                  backgroundColor: calculatedProfit ? '#4caf50' : '#f44336',
+                                  borderRadius: 4,
+                                  background: calculatedProfit 
+                                    ? 'linear-gradient(90deg, #4caf50 0%, #66bb6a 100%)'
+                                    : 'linear-gradient(90deg, #f44336 0%, #ef5350 100%)',
+                                },
+                              }}
+                            />
+                          </Box>
                         </CardContent>
                       </StyledCard>
                     </motion.div>
                   </Grid>
-                ))}
+                  );
+                })}
               </Grid>
             )}
           </CardContent>
