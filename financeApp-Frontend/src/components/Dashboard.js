@@ -558,134 +558,78 @@ const Dashboard = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
           >
-            <Card sx={{ height: '300px' }}>
-              <CardContent>
+            <Card sx={{ height: '450px' }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box display="flex" alignItems="center" mb={2}>
                   <ShowChart sx={{ mr: 1, color: (theme) => theme.palette.primary.main }} />
                   <Typography variant="h6" fontWeight="600" sx={{ color: 'text.primary' }}>
                     Portfolio Distribution
                   </Typography>
                 </Box>
-                {data.portfolio?.totalHoldings > 0 ? (
-                  <Box>
-                    <PortfolioChart 
-                      data={[
-                        { name: 'Stocks', value: data.portfolio?.totalInvestment * 0.6 },
-                        { name: 'Bonds', value: data.portfolio?.totalInvestment * 0.3 },
-                        { name: 'Cash', value: data.portfolio?.totalInvestment * 0.1 },
-                      ]}
-                    />
-                    <Box mt={2} textAlign="center">
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Total Portfolio Value
-                      </Typography>
-                      <Typography variant="h5" fontWeight="600" sx={{ color: 'primary.main' }}>
-                        {formatCurrency(data.portfolio?.currentValue)}
-                      </Typography>
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {data.portfolio?.totalHoldings > 0 ? (
+                    <Box width="100%" height="100%" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+                      <Box flexGrow={1} width="100%" display="flex" alignItems="center" justifyContent="center">
+                        <PortfolioChart 
+                          data={[
+                            { name: 'Stocks', value: data.portfolio?.totalInvestment * 0.6 },
+                            { name: 'Bonds', value: data.portfolio?.totalInvestment * 0.3 },
+                            { name: 'Cash', value: data.portfolio?.totalInvestment * 0.1 },
+                          ]}
+                        />
+                      </Box>
+                      <Box mt={2} textAlign="center">
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                          Total Portfolio Value
+                        </Typography>
+                        <Typography variant="h5" fontWeight="600" sx={{ color: 'primary.main' }}>
+                          {formatCurrency(data.portfolio?.currentValue)}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                ) : (
-                  <Box 
-                    display="flex" 
-                    alignItems="center" 
-                    justifyContent="center" 
-                    height="200px"
-                    flexDirection="column"
-                  >
-                    <AutoGraph sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                    <Typography sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
-                      Start tracking investments with live market data
-                    </Typography>
-                    <Button 
-                      variant="contained" 
-                      sx={{ mt: 1 }}
-                      onClick={handleQuickInvest}
-                      startIcon={<Add />}
+                  ) : (
+                    <Box 
+                      display="flex" 
+                      alignItems="center" 
+                      justifyContent="center" 
+                      flexDirection="column"
                     >
-                      Add First Investment
-                    </Button>
-                  </Box>
-                )}
+                      <AutoGraph sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                      <Typography sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
+                        Start tracking investments with live market data
+                      </Typography>
+                      <Button 
+                        variant="contained" 
+                        sx={{ mt: 1 }}
+                        onClick={handleQuickInvest}
+                        startIcon={<Add />}
+                      >
+                        Add First Investment
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
               </CardContent>
             </Card>
           </motion.div>
         </Grid>
 
-        {/* Financial Health Score */}
+        {/* Spending by Category */}
         <Grid item xs={12} md={6}>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
           >
-            <Card sx={{ height: '300px' }}>
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={3}>
-                  <Assessment sx={{ mr: 1, color: (theme) => theme.palette.secondary.main }} />
-                  <Typography variant="h6" fontWeight="600" sx={{ color: 'text.primary' }}>
-                    Financial Health Score
-                  </Typography>
-                </Box>
-                <Box textAlign="center">
-                  <Box position="relative" display="inline-flex" mb={3}>
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.8, delay: 0.7 }}
-                    >
-                      <Avatar
-                        sx={{
-                          width: 120,
-                          height: 120,
-                          bgcolor: (theme) => alpha(theme.palette.success.main, 0.1),
-                          fontSize: '2rem',
-                          fontWeight: 700,
-                          color: (theme) => theme.palette.success.main,
-                        }}
-                      >
-                        {data.advice?.financialHealthScore || 85}
-                      </Avatar>
-                    </motion.div>
-                  </Box>
-                  <Typography variant="h5" fontWeight="600" sx={{ color: 'success.main', mb: 1 }}>
-                    Excellent
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Your financial health is strong. Keep up the good work!
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={data.advice?.financialHealthScore || 85}
-                    sx={{
-                      height: 8,
-                      borderRadius: 4,
-                      bgcolor: (theme) => alpha(theme.palette.success.main, 0.1),
-                      '& .MuiLinearProgress-bar': {
-                        bgcolor: (theme) => theme.palette.success.main,
-                        borderRadius: 4,
-                      },
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
+            <Box sx={{ height: '450px', overflow: 'hidden' }}>
+              <SpendingChart data={data.summary} />
+            </Box>
           </motion.div>
         </Grid>
       </Grid>
 
       {/* Spending Analysis and Goals */}
       <Grid container spacing={3} mb={4}>
-        {/* Spending Chart */}
-        <Grid item xs={12} md={6}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
-          >
-            <SpendingChart data={data.summary} />
-          </motion.div>
-        </Grid>
-
         {/* Monthly Spending Trend - Placeholder for future enhancement */}
         <Grid item xs={12} md={6}>
           <motion.div
@@ -693,20 +637,20 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
           >
-            <Card sx={{ height: '400px' }}>
-              <CardContent>
+            <Card sx={{ height: '450px' }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box display="flex" alignItems="center" mb={3}>
                   <Assessment sx={{ mr: 1, color: (theme) => theme.palette.info.main }} />
                   <Typography variant="h6" fontWeight="600" sx={{ color: 'text.primary' }}>
                     Spending Insights
                   </Typography>
                 </Box>
-                <Box
+                <Box 
                   display="flex"
                   flexDirection="column"
                   alignItems="center"
                   justifyContent="center"
-                  height="300px"
+                  sx={{ flex: 1 }}
                 >
                   <ShowChart sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                   <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2 }}>
@@ -720,10 +664,7 @@ const Dashboard = () => {
             </Card>
           </motion.div>
         </Grid>
-      </Grid>
 
-      {/* Goals and Recent Transactions */}
-      <Grid container spacing={3}>
         {/* Active Goals */}
         <Grid item xs={12} md={6}>
           <motion.div
@@ -731,88 +672,93 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
-            <Card>
-              <CardContent>
+            <Card sx={{ height: '450px' }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box display="flex" alignItems="center" mb={3}>
                   <EmojiEvents sx={{ mr: 1, color: (theme) => theme.palette.warning.main }} />
                   <Typography variant="h6" fontWeight="600" sx={{ color: 'text.primary' }}>
                     Active Goals
                   </Typography>
                 </Box>
-                {data.goals.length > 0 ? (
-                  <Box>
-                    {data.goals.slice(0, 3).map((goal, index) => (
-                      <motion.div
-                        key={goal.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.8 + index * 0.1 }}
-                      >
-                        <Box mb={3}>
-                          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                            <Typography variant="subtitle1" fontWeight="500" sx={{ color: 'text.primary' }}>
-                              {goal.name}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              {Math.round((goal.currentAmount / goal.targetAmount) * 100)}%
-                            </Typography>
-                          </Box>
-                          <LinearProgress
-                            variant="determinate"
-                            value={(goal.currentAmount / goal.targetAmount) * 100}
-                            sx={{
-                              height: 8,
-                              borderRadius: 4,
-                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                              '& .MuiLinearProgress-bar': {
-                                bgcolor: (theme) => theme.palette.primary.main,
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                  {data.goals.length > 0 ? (
+                    <Box>
+                      {data.goals.slice(0, 3).map((goal, index) => (
+                        <motion.div
+                          key={goal.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: 0.8 + index * 0.1 }}
+                        >
+                          <Box mb={3}>
+                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                              <Typography variant="subtitle1" fontWeight="500" sx={{ color: 'text.primary' }}>
+                                {goal.name}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                {Math.round((goal.currentAmount / goal.targetAmount) * 100)}%
+                              </Typography>
+                            </Box>
+                            <LinearProgress
+                              variant="determinate"
+                              value={(goal.currentAmount / goal.targetAmount) * 100}
+                              sx={{
+                                height: 8,
                                 borderRadius: 4,
-                              },
-                            }}
-                          />
-                          <Box display="flex" justifyContent="space-between" mt={1}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {formatCurrency(goal.currentAmount)}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {formatCurrency(goal.targetAmount)}
-                            </Typography>
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                                '& .MuiLinearProgress-bar': {
+                                  bgcolor: (theme) => theme.palette.primary.main,
+                                  borderRadius: 4,
+                                },
+                              }}
+                            />
+                            <Box display="flex" justifyContent="space-between" mt={1}>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {formatCurrency(goal.currentAmount)}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {formatCurrency(goal.targetAmount)}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
-                      </motion.div>
-                    ))}
-                  </Box>
-                ) : (
-                  <Box 
-                    display="flex" 
-                    alignItems="center" 
-                    justifyContent="center" 
-                    height="150px"
-                    flexDirection="column"
-                  >
-                    <EmojiEvents sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                    <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-                      No active goals
-                    </Typography>
-                    <Button variant="contained">
-                      Create Goal
-                    </Button>
-                  </Box>
-                )}
+                        </motion.div>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box 
+                      display="flex" 
+                      alignItems="center" 
+                      justifyContent="center" 
+                      height="100%"
+                      flexDirection="column"
+                    >
+                      <EmojiEvents sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                      <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+                        No active goals
+                      </Typography>
+                      <Button variant="contained">
+                        Create Goal
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
               </CardContent>
             </Card>
           </motion.div>
         </Grid>
+      </Grid>
 
+      {/* Goals and Recent Transactions */}
+      <Grid container spacing={3}>
         {/* Recent Transactions */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
           >
-            <Card>
-              <CardContent>
+            <Card sx={{ height: '450px' }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box display="flex" alignItems="center" justifyContent="between" mb={3}>
                   <Box display="flex" alignItems="center">
                     <Notifications sx={{ mr: 1, color: (theme) => theme.palette.info.main }} />
@@ -821,75 +767,77 @@ const Dashboard = () => {
                     </Typography>
                   </Box>
                 </Box>
-                {data.transactions.length > 0 ? (
-                  <Box>
-                    {data.transactions.map((transaction, index) => (
-                      <motion.div
-                        key={transaction.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
-                      >
-                        <Box 
-                          display="flex" 
-                          justifyContent="space-between" 
-                          alignItems="center"
-                          py={2}
-                          borderBottom={index < data.transactions.length - 1 ? '1px solid' : 'none'}
-                          borderColor="divider"
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                  {data.transactions.length > 0 ? (
+                    <Box>
+                      {data.transactions.map((transaction, index) => (
+                        <motion.div
+                          key={transaction.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
                         >
-                          <Box>
-                            <Typography variant="subtitle2" fontWeight="500" sx={{ color: 'text.primary' }}>
-                              {transaction.description}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {new Date(transaction.transactionDate).toLocaleDateString()}
+                          <Box 
+                            display="flex" 
+                            justifyContent="space-between" 
+                            alignItems="center"
+                            py={2}
+                            borderBottom={index < data.transactions.length - 1 ? '1px solid' : 'none'}
+                            borderColor="divider"
+                          >
+                            <Box>
+                              <Typography variant="subtitle2" fontWeight="500" sx={{ color: 'text.primary' }}>
+                                {transaction.description}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {new Date(transaction.transactionDate).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight="600"
+                              sx={{ color: transaction.type === 'INCOME' ? 'success.main' : 'error.main' }}
+                            >
+                              {transaction.type === 'INCOME' ? '+' : '-'}
+                              {formatCurrency(transaction.amount)}
                             </Typography>
                           </Box>
-                          <Typography
-                            variant="subtitle1"
-                            fontWeight="600"
-                            sx={{ color: transaction.type === 'INCOME' ? 'success.main' : 'error.main' }}
-                          >
-                            {transaction.type === 'INCOME' ? '+' : '-'}
-                            {formatCurrency(transaction.amount)}
-                          </Typography>
-                        </Box>
-                      </motion.div>
-                    ))}
-                  </Box>
-                ) : (
-                  <Box 
-                    display="flex" 
-                    alignItems="center" 
-                    justifyContent="center" 
-                    height="150px"
-                    flexDirection="column"
-                  >
-                    <FileUpload sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                    <Typography sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
-                      Add transactions manually or view existing ones
-                    </Typography>
-                    <Box display="flex" gap={1}>
-                      <Button 
-                        variant="outlined"
-                        size="small"
-                        onClick={handleAddTransaction}
-                        startIcon={<Add />}
-                      >
-                        Add Manual
-                      </Button>
-                      <Button 
-                        variant="contained"
-                        size="small"
-                        onClick={handleQuickUpload}
-                        startIcon={<Timeline />}
-                      >
-                        View Transactions
-                      </Button>
+                        </motion.div>
+                      ))}
                     </Box>
-                  </Box>
-                )}
+                  ) : (
+                    <Box 
+                      display="flex" 
+                      alignItems="center" 
+                      justifyContent="center" 
+                      height="100%"
+                      flexDirection="column"
+                    >
+                      <FileUpload sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                      <Typography sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
+                        Add transactions manually or view existing ones
+                      </Typography>
+                      <Box display="flex" gap={1}>
+                        <Button 
+                          variant="outlined"
+                          size="small"
+                          onClick={handleAddTransaction}
+                          startIcon={<Add />}
+                        >
+                          Add Manual
+                        </Button>
+                        <Button 
+                          variant="contained"
+                          size="small"
+                          onClick={handleQuickUpload}
+                          startIcon={<Timeline />}
+                        >
+                          View Transactions
+                        </Button>
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
               </CardContent>
             </Card>
           </motion.div>

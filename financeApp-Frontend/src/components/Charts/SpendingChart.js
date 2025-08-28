@@ -14,14 +14,16 @@ import {
   Tabs,
   Tab,
   Paper,
-  Chip
+  Chip,
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import {
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   BarChart,
   Bar,
   XAxis,
@@ -39,7 +41,10 @@ import {
   Home,
   LocalHospital,
   School,
-  Flight
+  Flight,
+  InfoOutlined,
+  ArrowUpward,
+  ArrowDownward
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { transactionAPI } from '../../services/api';
@@ -90,10 +95,40 @@ const SpendingChart = ({ data, period = 'current' }) => {
   };
 
   const processSpendingData = (expensesByCategory) => {
-    // Calculate total spending first
-    const totalSpending = expensesByCategory.reduce((sum, [category, amount]) => sum + (parseFloat(amount) || 0), 0);
+    console.log('Processing spending data:', expensesByCategory);
     
-    const processedData = expensesByCategory.map(([category, amount], index) => {
+    if (!expensesByCategory) {
+      console.log('No expensesByCategory data provided');
+      setSpendingData([]);
+      return;
+    }
+
+    // Handle different data formats
+    let dataArray = [];
+    
+    if (Array.isArray(expensesByCategory)) {
+      // Handle array of arrays format: [["FOOD", 300.00], ["TRANSPORT", 150.00]]
+      dataArray = expensesByCategory;
+    } else if (typeof expensesByCategory === 'object') {
+      // Handle object format: {"FOOD": 300.00, "TRANSPORT": 150.00}
+      dataArray = Object.entries(expensesByCategory);
+    } else {
+      console.error('Unexpected expensesByCategory format:', typeof expensesByCategory, expensesByCategory);
+      setSpendingData([]);
+      return;
+    }
+    
+    console.log('Processed dataArray:', dataArray);
+    
+    // Calculate total spending first
+    const totalSpending = dataArray.reduce((sum, [category, amount]) => {
+      const numericAmount = parseFloat(amount) || 0;
+      return sum + numericAmount;
+    }, 0);
+    
+    console.log('Total spending calculated:', totalSpending);
+    
+    const processedData = dataArray.map(([category, amount], index) => {
       const value = parseFloat(amount) || 0;
       const percentage = totalSpending > 0 ? (value / totalSpending) * 100 : 0;
       
@@ -107,6 +142,7 @@ const SpendingChart = ({ data, period = 'current' }) => {
       };
     }).filter(item => item.value > 0);
 
+    console.log('Final processed data:', processedData);
     setSpendingData(processedData);
   };
 
@@ -311,108 +347,214 @@ const SpendingChart = ({ data, period = 'current' }) => {
       );
     }
 
+    // Sort data by value descending for better visualization
+    const sortedData = [...spendingData].sort((a, b) => b.value - a.value);
+    
+    // Split into top categories and others for better visualization
+    const topCategories = sortedData.slice(0, 6); // Increased from 5 to 6
+    const otherCategories = sortedData.slice(6); // Updated index
+    const otherTotal = otherCategories.reduce((sum, item) => sum + item.value, 0);
+    
+    // Prepare data for pie chart with "Others" category if needed
+    const pieChartData = otherTotal > 0 
+      ? [...topCategories, { name: 'Others', value: otherTotal, category: 'OTHERS', color: '#94a3b8', icon: <ShoppingCart /> }] 
+      : topCategories;
+
     return (
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <ResponsiveContainer width="100%" height={350}>
-            <PieChart>
-              <Pie
-                data={spendingData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={CustomPieLabel}
-                outerRadius={120}
-                fill="#8884d8"
-                dataKey="value"
-                animationBegin={0}
-                animationDuration={1000}
-              >
-                {spendingData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <List dense>
-            {spendingData.map((item, index) => (
-              <motion.div
-                key={item.category}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <ListItem>
-                  <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: item.color, width: 32, height: 32 }}>
-                      {item.icon}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={item.name}
-                    secondary={
-                      <Box>
-                        <Typography variant="body2" fontWeight="bold">
-                          {formatCurrency(item.value)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {((item.value / spendingData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(1)}% of total
-                        </Typography>
-                      </Box>
-                    }
-                    primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
-                  />
-                </ListItem>
-                {index < spendingData.length - 1 && <Divider />}
-              </motion.div>
-            ))}
-          </List>
-        </Grid>
-      </Grid>
+      <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, minHeight: 0, width: '100%' }}>
+          <Grid container spacing={2} sx={{ height: '100%' }}>
+            <Grid item xs={12} md={7} sx={{ height: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={CustomPieLabel}
+                    outerRadius={100} // Increased from 90
+                    innerRadius={50}  // Increased from 45
+                    fill="#8884d8"
+                    dataKey="value"
+                    animationBegin={0}
+                    animationDuration={1000}
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Grid>
+            <Grid item xs={12} md={5} sx={{ height: '100%' }}>
+              <Box sx={{ maxHeight: '100%', overflowY: 'auto', pr: 1 }}>
+                <List dense>
+                  {topCategories.map((item, index) => (
+                    <motion.div
+                      key={item.category}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <ListItem sx={{ py: 0.75 }}> {/* Increased padding */}
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: item.color, width: 36, height: 36 }}> {/* Increased size */}
+                            {item.icon}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                              <Typography variant="body2" fontWeight="medium">
+                                {item.name}
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {formatCurrency(item.value)}
+                              </Typography>
+                            </Box>
+                          }
+                          secondary={
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                {item.percentage?.toFixed(1) || 0}% of total
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                      {index < topCategories.length - 1 && <Divider />}
+                    </motion.div>
+                  ))}
+                  
+                  {/* Show "Others" category if there are more than 6 categories */}
+                  {otherTotal > 0 && (
+                    <>
+                      <Divider sx={{ my: 1 }} />
+                      <ListItem sx={{ py: 0.75 }}> {/* Increased padding */}
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: '#94a3b8', width: 36, height: 36 }}> {/* Increased size */}
+                            <ShoppingCart />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                              <Typography variant="body2" fontWeight="medium">
+                                Others ({otherCategories.length} items)
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {formatCurrency(otherTotal)}
+                              </Typography>
+                            </Box>
+                          }
+                          secondary={
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" color="text.secondary">
+                                {((otherTotal / sortedData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(1)}% of total
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    </>
+                  )}
+                </List>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      </Box>
     );
   };
 
   const renderBarChart = () => {
+    console.log('Rendering bar chart with data:', spendingData);
+    
     if (!spendingData || spendingData.length === 0) {
+      console.log('No spending data for bar chart');
       return (
-        <Box textAlign="center" py={4}>
+        <Box 
+          textAlign="center" 
+          py={4}
+          sx={{ 
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
           <Assessment sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary">
             No spending data available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Add some expense transactions to see your spending breakdown
           </Typography>
         </Box>
       );
     }
 
+    // Sort data by value descending
+    const sortedData = [...spendingData].sort((a, b) => b.value - a.value);
+    
+    // Limit to top 10 categories for better visualization (increased from 8)
+    const topCategories = sortedData.slice(0, 10);
+    
+    console.log('Top categories for bar chart:', topCategories);
+    
+    // Calculate max value for better scaling
+    const maxValue = Math.max(...topCategories.map(item => item.value));
+
     return (
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={spendingData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-          <XAxis 
-            dataKey="name" 
-            angle={-45}
-            textAnchor="end"
-            height={100}
-            fontSize={12}
-            stroke="rgba(255, 255, 255, 0.7)"
-          />
-          <YAxis stroke="rgba(255, 255, 255, 0.7)" />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar 
-            dataKey="value" 
-            name="Amount Spent" 
-            animationDuration={1000}
-            radius={[4, 4, 0, 0]}
-          >
-            {spendingData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, width: '100%', minHeight: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart 
+              data={topCategories} 
+              margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+              <XAxis 
+                dataKey="name" 
+                angle={-45}
+                textAnchor="end"
+                height={70}
+                tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)' }}
+                stroke="rgba(255, 255, 255, 0.7)"
+              />
+              <YAxis 
+                stroke="rgba(255, 255, 255, 0.7)"
+                tickFormatter={(value) => formatCurrency(value)}
+                tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)' }}
+              />
+              <RechartsTooltip content={<CustomTooltip />} />
+              <Bar 
+                dataKey="value" 
+                name="Amount Spent" 
+                animationDuration={1000}
+                radius={[4, 4, 0, 0]}
+              >
+                {topCategories.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Box>
+        
+        {/* Show "View All Categories" button if there are more than 10 categories */}
+        {spendingData.length > 10 && (
+          <Box textAlign="center" mt={1}>
+            <Typography variant="caption" color="text.secondary">
+              Showing top 10 of {spendingData.length} categories
+            </Typography>
+          </Box>
+        )}
+      </Box>
     );
   };
 
@@ -425,56 +567,141 @@ const SpendingChart = ({ data, period = 'current' }) => {
     return spendingData.reduce((max, item) => item.value > max.value ? item : max);
   };
 
+  const getAverageSpending = () => {
+    if (spendingData.length === 0) return 0;
+    const total = spendingData.reduce((sum, item) => sum + item.value, 0);
+    return total / spendingData.length;
+  };
+
   return (
-    <Card>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="between" mb={3}>
+    <Card 
+      sx={{ 
+        height: '100%',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: 3,
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, #ef4444, #f97316)',
+          borderRadius: '12px 12px 0 0'
+        },
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}
+    >
+      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2, pb: '16px !important', height: '100%' }}>
+        <Box display="flex" alignItems="center" justifyContent="between" mb={2}>
           <Box display="flex" alignItems="center">
             <TrendingDown sx={{ mr: 1, color: (theme) => theme.palette.error.main }} />
             <Typography variant="h6" fontWeight="600" color="text.primary">
               Spending by Category
             </Typography>
+            <Tooltip title="Shows your spending breakdown by category">
+              <IconButton size="small" sx={{ ml: 0.5 }}>
+                <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+              </IconButton>
+            </Tooltip>
           </Box>
           {spendingData.length > 0 && (
-            <Box display="flex" gap={2}>
+            <Box display="flex" gap={1}>
               <Chip 
                 label={`Total: ${formatCurrency(getTotalSpending())}`}
-                color="error"
-                variant="outlined"
+                size="small"
+                sx={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: '#fca5a5',
+                  border: '1px solid rgba(239, 68, 68, 0.3)'
+                }}
               />
-              {getTopSpendingCategory() && (
-                <Chip 
-                  label={`Top: ${getTopSpendingCategory().name}`}
-                  color="warning"
-                  variant="outlined"
-                />
-              )}
             </Box>
           )}
         </Box>
 
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        {/* Spending Insights */}
+        {spendingData.length > 0 && (
+          <Box display="flex" gap={1} mb={2} flexWrap="wrap">
+            <Chip 
+              icon={<ArrowUpward sx={{ color: '#f87171 !important' }} />}
+              label={`Top: ${getTopSpendingCategory()?.name || 'N/A'} (${formatCurrency(getTopSpendingCategory()?.value || 0)})`}
+              size="small"
+              sx={{
+                background: 'rgba(248, 113, 113, 0.15)',
+                color: '#f87171',
+                border: '1px solid rgba(248, 113, 113, 0.3)',
+                mb: 0.5
+              }}
+            />
+            <Chip 
+              icon={<ArrowDownward sx={{ color: '#60a5fa !important' }} />}
+              label={`Avg: ${formatCurrency(getAverageSpending())}`}
+              size="small"
+              sx={{
+                background: 'rgba(96, 165, 250, 0.15)',
+                color: '#60a5fa',
+                border: '1px solid rgba(96, 165, 250, 0.3)',
+                mb: 0.5
+              }}
+            />
+            <Chip 
+              label={`${spendingData.length} categories`}
+              size="small"
+              sx={{
+                background: 'rgba(139, 92, 246, 0.15)',
+                color: '#c4b5fd',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                mb: 0.5
+              }}
+            />
+          </Box>
+        )}
+
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs 
             value={chartType} 
             onChange={(event, newValue) => setChartType(newValue)}
             aria-label="chart type tabs"
+            sx={{
+              minHeight: 36,
+              '& .MuiTab-root': {
+                minHeight: 36,
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&.Mui-selected': {
+                  color: '#f87171'
+                },
+                padding: '6px 12px'
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#f87171'
+              }
+            }}
           >
             <Tab value="pie" label="Pie Chart" />
             <Tab value="bar" label="Bar Chart" />
           </Tabs>
         </Box>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={chartType}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {chartType === 'pie' ? renderPieChart() : renderBarChart()}
-          </motion.div>
-        </AnimatePresence>
+        <Box sx={{ flex: 1, minHeight: 0, width: '100%' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={chartType}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              style={{ height: '100%', width: '100%' }}
+            >
+              {chartType === 'pie' ? renderPieChart() : renderBarChart()}
+            </motion.div>
+          </AnimatePresence>
+        </Box>
       </CardContent>
     </Card>
   );
