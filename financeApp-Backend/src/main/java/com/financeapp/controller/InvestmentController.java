@@ -188,6 +188,24 @@ public class InvestmentController {
         return ResponseEntity.ok(suggestions);
     }
 
+    // Stock Search for Autocomplete
+    @GetMapping("/search-stocks")
+    public ResponseEntity<List<Map<String, Object>>> searchStocks(@RequestParam String query) {
+        List<Map<String, Object>> stockSuggestions = investmentService.searchStocks(query);
+        return ResponseEntity.ok(stockSuggestions);
+    }
+    
+    // Get Current Price for a Symbol
+    @GetMapping("/current-price/{symbol}")
+    public ResponseEntity<Map<String, Object>> getCurrentPrice(@PathVariable String symbol) {
+        try {
+            Map<String, Object> priceData = investmentService.getCurrentPrice(symbol);
+            return ResponseEntity.ok(priceData);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Could not fetch price for " + symbol));
+        }
+    }
+
     // Investment Types
     @GetMapping("/types")
     public ResponseEntity<InvestmentType[]> getInvestmentTypes() {

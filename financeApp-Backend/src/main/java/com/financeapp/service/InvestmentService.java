@@ -2,12 +2,13 @@ package com.financeapp.service;
 
 import com.financeapp.model.Investment;
 import com.financeapp.model.InvestmentType;
+import com.financeapp.model.StockSymbol;
 import com.financeapp.model.User;
 import com.financeapp.repository.InvestmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -23,6 +24,9 @@ public class InvestmentService {
 
     @Autowired
     private YahooFinanceService yahooFinanceService;
+    
+    @Autowired
+    private StockSymbolLoaderService stockSymbolLoaderService;
 
     @Value("${investment.price-update.enabled:true}")
     private boolean priceUpdateEnabled;
@@ -399,7 +403,58 @@ public class InvestmentService {
         status.put("marketOpen", yahooFinanceService.isMarketOpen());
         return status;
     }
-
+    
+    // Stock Search for Autocomplete
+    public List<Map<String, Object>> searchStocks(String query) {
+        List<Map<String, Object>> results = new ArrayList<>();
+        
+        if (query == null || query.trim().length() < 2) {
+            return results;
+        }
+        
+        // Use the StockSymbolLoaderService to search stocks from the database
+        List<StockSymbol> stockSymbols = stockSymbolLoaderService.searchSymbols(query);
+        
+        // Convert StockSymbol entities to the expected Map format
+        for (StockSymbol stockSymbol : stockSymbols) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("symbol", stockSymbol.getSymbol());
+            result.put("name", stockSymbol.getCompanyName());
+            result.put("sector", stockSymbol.getSector());
+            result.put("type", "STOCK");
+            result.put("exchange", "NSE");
+            results.add(result);
+        }
+        
+        return results;
+    }
+    
+    // Get current price for a specific symbol
+    public Map<String, Object> getCurrentPrice(String symbol) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Validate symbol using StockSymbolLoaderService
+        if (!stockSymbolLoaderService.isSymbolSupported(symbol)) {
+            throw new RuntimeException("Symbol not supported: " + symbol);
+        }
+        
+        try {
+            BigDecimal price = yahooFinanceService.getCurrentPrice(symbol);
+            if (price != null) {
+                result.put("symbol", symbol);
+                result.put("price", price);
+                result.put("source", "YAHOO_FINANCE");
+                result.put("timestamp", LocalDateTime.now());
+            } else {
+                throw new RuntimeException("Price not available");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch price for " + symbol + ": " + e.getMessage());
+        }
+        
+        return result;
+    }
+    
     // Helper method to convert Investment to Map for API responses
     private Map<String, Object> investmentToMap(Investment investment) {
         Map<String, Object> map = new HashMap<>();

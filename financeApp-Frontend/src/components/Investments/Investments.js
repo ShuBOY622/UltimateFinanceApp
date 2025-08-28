@@ -22,7 +22,9 @@ import {
   Divider,
   Alert,
   Fade,
-  Slide
+  Slide,
+  Autocomplete,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -114,10 +116,6 @@ const SECTORS = [
   'Telecommunications', 'Utilities', 'Real Estate', 'Materials', 'Industrials'
 ];
 
-const PLATFORMS = [
-  'Groww', 'Zerodha', 'Yahoo Finance', 'Angel One', 'ICICI Direct', 'HDFC Securities', 'Kotak Securities', 'Manual Entry'
-];
-
 const Investments = () => {
   const [investments, setInvestments] = useState([]);
   const [portfolioSummary, setPortfolioSummary] = useState(null);
@@ -128,6 +126,8 @@ const Investments = () => {
   const [apiStatus, setApiStatus] = useState(null);
   const [priceUpdateStatus, setPriceUpdateStatus] = useState(null);
   const [updatingPrices, setUpdatingPrices] = useState(false);
+  const [stockSuggestions, setStockSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [formData, setFormData] = useState({
     symbol: '',
     name: '',
@@ -135,7 +135,6 @@ const Investments = () => {
     quantity: '',
     purchasePrice: '',
     purchaseDate: dayjs(),
-    platform: 'Manual Entry',
     sector: '',
     notes: ''
   });
@@ -175,6 +174,50 @@ const Investments = () => {
       setSuggestions(response.data);
     } catch (error) {
       console.error('Suggestions error:', error);
+    }
+  };
+
+  const searchStocks = async (query) => {
+    if (!query || query.length < 2) {
+      setStockSuggestions([]);
+      return;
+    }
+
+    try {
+      setLoadingSuggestions(true);
+      const response = await api.get(`/investments/search-stocks?query=${encodeURIComponent(query)}`);
+      setStockSuggestions(response.data || []);
+    } catch (error) {
+      console.error('Stock search error:', error);
+      setStockSuggestions([]);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleStockSelect = async (stock) => {
+    if (stock) {
+      setFormData({
+        ...formData,
+        symbol: stock.symbol,
+        name: stock.name,
+        sector: stock.sector || '',
+        type: stock.type || 'STOCK'
+      });
+      
+      // Try to fetch current price
+      try {
+        const priceResponse = await api.get(`/investments/current-price/${stock.symbol}`);
+        if (priceResponse.data?.price) {
+          setFormData(prev => ({
+            ...prev,
+            purchasePrice: priceResponse.data.price.toString()
+          }));
+          toast.success(`Current price fetched: ₹${priceResponse.data.price}`);
+        }
+      } catch (error) {
+        console.log('Could not fetch current price:', error);
+      }
     }
   };
 
@@ -244,7 +287,6 @@ const Investments = () => {
         quantity: investment.quantity.toString(),
         purchasePrice: investment.purchasePrice.toString(),
         purchaseDate: dayjs(investment.purchaseDate),
-        platform: investment.platform || 'Manual Entry',
         sector: investment.sector || '',
         notes: investment.notes || ''
       });
@@ -257,7 +299,6 @@ const Investments = () => {
         quantity: '',
         purchasePrice: '',
         purchaseDate: dayjs(),
-        platform: 'Manual Entry',
         sector: '',
         notes: ''
       });
@@ -303,7 +344,6 @@ const Investments = () => {
         quantity: quantity,
         purchasePrice: purchasePrice,
         purchaseDate: formData.purchaseDate.format('YYYY-MM-DDTHH:mm:ss'),
-        platform: formData.platform?.trim() || 'Manual Entry',
         sector: formData.sector?.trim() || null,
         notes: formData.notes?.trim() || null
       };
@@ -858,24 +898,64 @@ const Investments = () => {
           )}
           
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
+            <Grid item xs={12}>
+              <Autocomplete
                 fullWidth
-                label="Symbol"
-                value={formData.symbol}
-                onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-                required
+                options={stockSuggestions}
+                getOptionLabel={(option) => `${option.symbol} - ${option.name}`}
+                isOptionEqualToValue={(option, value) => option.symbol === value.symbol}
+                loading={loadingSuggestions}
+                onInputChange={(event, newInputValue) => {
+                  searchStocks(newInputValue);
+                }}
+                onChange={(event, newValue) => {
+                  handleStockSelect(newValue);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search Stock/Mutual Fund"
+                    placeholder="Start typing symbol or company name..."
+                    required
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingSuggestions ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                    helperText="Search by symbol (e.g., RELIANCE) or company name (e.g., Reliance Industries)"
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {option.symbol}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {option.name} {option.sector ? `• ${option.sector}` : ''}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                noOptionsText="Start typing to search stocks..."
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Company/Fund Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </Grid>
+            
+            {/* Display selected stock info */}
+            {formData.symbol && (
+              <Grid item xs={12}>
+                <Alert severity="success" sx={{ mt: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Selected:</strong> {formData.symbol} - {formData.name}
+                    {formData.sector && ` (${formData.sector})`}
+                  </Typography>
+                </Alert>
+              </Grid>
+            )}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -940,21 +1020,6 @@ const Investments = () => {
                   renderInput={(params) => <TextField {...params} fullWidth />}
                 />
               </LocalizationProvider>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                select
-                label="Platform"
-                value={formData.platform}
-                onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-              >
-                {PLATFORMS.map((platform) => (
-                  <MenuItem key={platform} value={platform}>
-                    {platform}
-                  </MenuItem>
-                ))}
-              </TextField>
             </Grid>
             <Grid item xs={12}>
               <TextField

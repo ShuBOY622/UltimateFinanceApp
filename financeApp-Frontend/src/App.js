@@ -96,7 +96,6 @@ function AuthenticatedApp() {
     { text: 'Budget', icon: <BudgetIcon />, path: '/budget' },
     { text: 'Goals', icon: <GoalsIcon />, path: '/goals' },
     { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
-    { text: 'Statements', icon: <StatementsIcon />, path: '/statements' },
   ];
 
   const drawerWidth = 280;

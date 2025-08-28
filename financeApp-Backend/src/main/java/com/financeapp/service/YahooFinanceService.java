@@ -1,23 +1,25 @@
 package com.financeapp.service;
 
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpHeaders;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.financeapp.service.StockSymbolLoaderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.beans.factory.annotation.Value;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Yahoo Finance API Service for fetching Indian stock prices
@@ -25,6 +27,9 @@ import java.time.Instant;
  */
 @Service
 public class YahooFinanceService {
+    
+    @Autowired
+    private StockSymbolLoaderService stockSymbolLoaderService;
     
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -69,6 +74,22 @@ public class YahooFinanceService {
         symbolToYahooSymbol.put("M&M", "M&M.NS");
         symbolToYahooSymbol.put("TITAN", "TITAN.NS");
         symbolToYahooSymbol.put("SUNPHARMA", "SUNPHARMA.NS");
+        
+        // Add missing stocks from our database
+        symbolToYahooSymbol.put("BRITANNIA", "BRITANNIA.NS");
+        symbolToYahooSymbol.put("HCLTECH", "HCLTECH.NS");
+        symbolToYahooSymbol.put("IOC", "IOC.NS");
+        symbolToYahooSymbol.put("BPCL", "BPCL.NS");
+        symbolToYahooSymbol.put("TATAMOTORS", "TATAMOTORS.NS");
+        symbolToYahooSymbol.put("BAJAJ-AUTO", "BAJAJ-AUTO.NS");
+        symbolToYahooSymbol.put("CIPLA", "CIPLA.NS");
+        symbolToYahooSymbol.put("APOLLOHOSP", "APOLLOHOSP.NS");
+        symbolToYahooSymbol.put("ULTRACEMCO", "ULTRACEMCO.NS");
+        symbolToYahooSymbol.put("GRASIM", "GRASIM.NS");
+        symbolToYahooSymbol.put("TATASTEEL", "TATASTEEL.NS");
+        symbolToYahooSymbol.put("HINDALCO", "HINDALCO.NS");
+        symbolToYahooSymbol.put("JSWSTEEL", "JSWSTEEL.NS");
+        symbolToYahooSymbol.put("HDFCLIFE", "HDFCLIFE.NS");
     }
     
     /**
@@ -195,10 +216,23 @@ public class YahooFinanceService {
     }
     
     /**
-     * Get Yahoo Finance symbol for a given symbol
+     * Get Yahoo Finance symbol for a given symbol with smart fallback
      */
     private String getYahooSymbol(String symbol) {
-        return symbolToYahooSymbol.get(symbol.toUpperCase());
+        // First try the database-loaded cache
+        String yahooSymbol = stockSymbolLoaderService.getYahooSymbol(symbol);
+        if (yahooSymbol != null) {
+            return yahooSymbol;
+        }
+        
+        // Fallback to explicit mapping
+        String upperSymbol = symbol.toUpperCase();
+        if (symbolToYahooSymbol.containsKey(upperSymbol)) {
+            return symbolToYahooSymbol.get(upperSymbol);
+        }
+        
+        // Ultimate fallback: Add .NS suffix
+        return upperSymbol + ".NS";
     }
     
     /**
@@ -226,9 +260,28 @@ public class YahooFinanceService {
     
     /**
      * Validate if symbol is supported
+     * With smart fallback, we support most NSE symbols
      */
     public boolean isSymbolSupported(String symbol) {
-        return symbolToYahooSymbol.containsKey(symbol.toUpperCase());
+        // Check database cache first
+        if (stockSymbolLoaderService.isSymbolSupported(symbol)) {
+            return true;
+        }
+        
+        // Check explicit mapping
+        String upperSymbol = symbol.toUpperCase();
+        if (symbolToYahooSymbol.containsKey(upperSymbol)) {
+            return true;
+        }
+        
+        // With smart fallback (.NS suffix), we support most symbols
+        // Only exclude obviously invalid symbols
+        if (symbol == null || symbol.trim().isEmpty() || symbol.length() > 20) {
+            return false;
+        }
+        
+        // Support any reasonable symbol as we have fallback mechanism
+        return true;
     }
     
     /**
