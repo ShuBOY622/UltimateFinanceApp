@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Statement Type Test</title>
+</head>
+<body>
+    <h2>🧪 Statement Type State Test</h2>
+    <p>This simple test verifies that the statement type state is properly passed when files are selected.</p>
+    
+    <div>
+        <label>Statement Type:</label>
+        <select id=\"statementType\" onchange=\"handleTypeChange()\">
+            <option value=\"PHONEPE\">PhonePe</option>
+            <option value=\"KOTAK_BANK\">Kotak Bank</option>
+        </select>
+    </div>
+    
+    <div style=\"margin-top: 20px;\">
+        <input type=\"file\" id=\"fileInput\" onchange=\"handleFileSelect(event)\">
+    </div>
+    
+    <div id=\"output\" style=\"margin-top: 20px; padding: 10px; background: #f0f0f0;\"></div>
+    
+    <script>
+        let currentStatementType = 'PHONEPE';
+        
+        function handleTypeChange() {
+            const select = document.getElementById('statementType');
+            const newType = select.value;
+            console.log('Statement type changed from', currentStatementType, 'to', newType);
+            currentStatementType = newType;
+            updateOutput(`Statement type changed to: ${newType}`);
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                console.log('File selected:', file.name, 'with statement type:', currentStatementType);
+                updateOutput(`File selected: ${file.name}<br>Statement type: ${currentStatementType}`);
+                
+                // Simulate API call
+                simulateAPICall(file, currentStatementType);
+            }
+        }
+        
+        function simulateAPICall(file, statementType) {
+            console.log('🚀 Simulating API call with:', file.name, 'type:', statementType);
+            updateOutput(`<strong>✅ API Call Simulation:</strong><br>File: ${file.name}<br>Statement Type: ${statementType}<br>Expected: Should match selected type above`);
+        }
+        
+        function updateOutput(message) {
+            document.getElementById('output').innerHTML = message;
+        }
+        
+        // Initial state
+        updateOutput('Select a statement type and file to test state management');
+    </script>
+</body>
+</html>

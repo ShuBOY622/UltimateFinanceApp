@@ -1,0 +1,54 @@
+# ---- Global ----
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- IDE ----
+.vscode/
+.idea/
+*.iml
+*.class
+
+# ---- OS ----
+ehthumbs.db
+Icon?
+desktop.ini
+
+# ---- Node / React (frontend) ----
+financeApp-frontend/node_modules/
+financeApp-frontend/.env.local
+financeApp-frontend/.env.development.local
+financeApp-frontend/.env.test.local
+financeApp-frontend/.env.production.local
+financeApp-frontend/build/
+financeApp-frontend/dist/
+financeApp-frontend/npm-debug.log*
+financeApp-frontend/yarn-debug.log*
+financeApp-frontend/yarn-error.log*
+financeApp-frontend/.parcel-cache/
+financeApp-frontend/.next/
+financeApp-frontend/out/
+financeApp-frontend/.turbo/
+financeApp-frontend/.cache/
+
+# ---- Spring Boot (backend) ----
+financeApp-backend/target/
+financeApp-backend/.classpath
+financeApp-backend/.project
+financeApp-backend/.settings/
+financeApp-backend/.mvn/
+financeApp-backend/mvnw
+financeApp-backend/mvnw.cmd
+
+# Gradle (if using)
+financeApp-backend/.gradle/
+financeApp-backend/build/
+financeApp-backend/gradle-app.setting
+
+# ---- Environment & Secrets ----
+*.env
+.env.*
+financeApp-backend/src/main/resources/application-*.yml
+financeApp-backend/src/main/resources/application-*.properties
