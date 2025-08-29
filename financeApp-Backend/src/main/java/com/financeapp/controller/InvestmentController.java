@@ -5,11 +5,13 @@ import com.financeapp.model.InvestmentType;
 import com.financeapp.model.User;
 import com.financeapp.service.InvestmentService;
 import com.financeapp.service.PriceUpdateSchedulerService;
+import com.financeapp.service.InvestmentStatementParsingService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,6 +28,9 @@ public class InvestmentController {
 
     @Autowired
     private PriceUpdateSchedulerService priceUpdateSchedulerService;
+
+    @Autowired
+    private InvestmentStatementParsingService investmentStatementParsingService;
 
     // CRUD Operations
     @PostMapping
@@ -251,6 +256,46 @@ public class InvestmentController {
         );
         
         return ResponseEntity.ok(result);
+    }
+
+    // Investment Statement Upload for XLSX parsing
+    @PostMapping("/upload-statement")
+    public ResponseEntity<Map<String, Object>> uploadInvestmentStatement(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("platform") String platform,
+            Authentication authentication) {
+        
+        try {
+            User user = (User) authentication.getPrincipal();
+            
+            // Validate file
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Please select a file to upload"));
+            }
+            
+            if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "File size must be less than 10MB"));
+            }
+            
+            String filename = file.getOriginalFilename();
+            if (filename == null || (!filename.toLowerCase().endsWith(".xlsx") && !filename.toLowerCase().endsWith(".xls"))) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Only Excel files (.xlsx, .xls) are supported"));
+            }
+            
+            // Parse the investment statement
+            Map<String, Object> result = investmentStatementParsingService.parseStatement(file, platform, user);
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            System.err.println("Error processing investment statement: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(Map.of("error", "Failed to process investment statement: " + e.getMessage()));
+        }
     }
 
     // Search Investments

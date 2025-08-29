@@ -15,6 +15,7 @@ import {
   Container,
   Fab,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -45,6 +46,251 @@ import SpendingChart from './Charts/SpendingChart';
 
 const COLORS = ['#667eea', '#764ba2', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
 
+// Enhanced Insights Component
+const SpendingAndInvestmentInsights = ({ summaryData, portfolioData, transactions, lastMonthData }) => {
+  const [insights, setInsights] = useState([]);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  const formatCompactCurrency = (amount) => {
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
+    return formatCurrency(amount);
+  };
+
+  const getMonthName = (monthOffset = 0) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - monthOffset);
+    return date.toLocaleDateString('en-IN', { month: 'long' });
+  };
+
+  useEffect(() => {
+    if (!summaryData) return;
+
+    const generateInsights = () => {
+      const newInsights = [];
+      const currentMonthSpending = summaryData.monthlyExpenses || 0;
+      const lastMonthSpending = lastMonthData?.monthlyExpenses || 0;
+      const monthName = getMonthName(0);
+      const lastMonthName = getMonthName(1);
+
+      // Spending Insights
+      if (currentMonthSpending > 0) {
+        newInsights.push({
+          icon: AttachMoney,
+          color: '#ef4444',
+          title: 'Total Spending This Month',
+          value: `You spent ${formatCurrency(currentMonthSpending)} in ${monthName}.`,
+          type: 'spending'
+        });
+
+        // Month-over-month comparison
+        if (lastMonthSpending > 0) {
+          const changePercent = ((currentMonthSpending - lastMonthSpending) / lastMonthSpending * 100).toFixed(1);
+          const isIncrease = currentMonthSpending > lastMonthSpending;
+          newInsights.push({
+            icon: isIncrease ? TrendingUp : TrendingDown,
+            color: isIncrease ? '#ef4444' : '#10b981',
+            title: 'Month-over-Month Change',
+            value: `Your spending ${isIncrease ? 'increased' : 'decreased'} by ${Math.abs(changePercent)}% compared to ${lastMonthName}.`,
+            type: 'comparison'
+          });
+        }
+
+        // Daily average
+        const daysInMonth = new Date().getDate();
+        const dailyAverage = currentMonthSpending / daysInMonth;
+        newInsights.push({
+          icon: Timeline,
+          color: '#667eea',
+          title: 'Daily Average Spend',
+          value: `On average, you spent ${formatCurrency(dailyAverage)}/day this month.`,
+          type: 'average'
+        });
+      }
+
+      // Category breakdown insights
+      if (summaryData.expensesByCategory && summaryData.expensesByCategory.length > 0) {
+        const sortedCategories = [...summaryData.expensesByCategory]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3);
+
+        if (sortedCategories.length > 0) {
+          const topCategory = sortedCategories[0];
+          const percentage = ((topCategory[1] / currentMonthSpending) * 100).toFixed(0);
+          newInsights.push({
+            icon: Assessment,
+            color: '#f59e0b',
+            title: 'Top Spending Category',
+            value: `${topCategory[0].replace('_', ' & ')}: ${formatCurrency(topCategory[1])} (${percentage}% of total).`,
+            type: 'category'
+          });
+
+          if (sortedCategories.length >= 3) {
+            const top3Names = sortedCategories.map(cat => cat[0].replace('_', ' & ')).join(', ');
+            newInsights.push({
+              icon: ShowChart,
+              color: '#8b5cf6',
+              title: 'Top 3 Spending Categories',
+              value: `Most spent on ${top3Names.replace(/, ([^,]*)$/, ', and $1')}.`,
+              type: 'top3'
+            });
+          }
+        }
+      }
+
+      // Highest transaction insight
+      if (transactions && transactions.length > 0) {
+        const expenseTransactions = transactions.filter(t => t.type === 'EXPENSE');
+        if (expenseTransactions.length > 0) {
+          const highestExpense = expenseTransactions.reduce((max, current) => 
+            current.amount > max.amount ? current : max
+          );
+          newInsights.push({
+            icon: TrendingUp,
+            color: '#ef4444',
+            title: 'Biggest Purchase',
+            value: `Largest expense: ${formatCurrency(highestExpense.amount)} on ${highestExpense.category?.replace('_', ' & ')}.`,
+            type: 'highest'
+          });
+        }
+      }
+
+      // Investment Insights
+      if (portfolioData && portfolioData.totalHoldings > 0) {
+        newInsights.push({
+          icon: AutoGraph,
+          color: '#10b981',
+          title: 'Total Investment Value',
+          value: `Your investments are worth ${formatCompactCurrency(portfolioData.currentValue)}.`,
+          type: 'investment'
+        });
+
+        if (portfolioData.totalGainLoss !== undefined) {
+          const isProfit = portfolioData.totalGainLoss >= 0;
+          const gainLossPercent = portfolioData.gainLossPercentage || 0;
+          newInsights.push({
+            icon: isProfit ? TrendingUp : TrendingDown,
+            color: isProfit ? '#10b981' : '#ef4444',
+            title: 'Investment Performance',
+            value: `Portfolio ${isProfit ? 'gained' : 'dropped'} by ${isProfit ? '+' : ''}${gainLossPercent.toFixed(1)}% this month.`,
+            type: 'performance'
+          });
+        }
+
+        // Holdings count
+        newInsights.push({
+          icon: Assessment,
+          color: '#667eea',
+          title: 'Portfolio Diversification',
+          value: `You have ${portfolioData.totalHoldings} active holdings across different assets.`,
+          type: 'diversification'
+        });
+      }
+
+      // Savings Rate Insight
+      if (summaryData.savingsRate !== undefined) {
+        const savingsRate = summaryData.savingsRate;
+        const rateColor = savingsRate >= 20 ? '#10b981' : savingsRate >= 10 ? '#f59e0b' : '#ef4444';
+        newInsights.push({
+          icon: SaveAlt,
+          color: rateColor,
+          title: 'Savings Rate',
+          value: `You saved ${savingsRate.toFixed(1)}% of your income this month.`,
+          type: 'savings'
+        });
+      }
+
+      setInsights(newInsights.slice(0, 6)); // Limit to 6 insights for better UX
+    };
+
+    generateInsights();
+  }, [summaryData, portfolioData, transactions, lastMonthData]);
+
+  if (insights.length === 0) {
+    return (
+      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+        <Assessment sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+        <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+          No Insights Available
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+          Add transactions and investments to see personalized financial insights
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      {insights.map((insight, index) => (
+        <motion.div
+          key={`${insight.type}-${index}`}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+        >
+          <Box 
+            display="flex" 
+            alignItems="flex-start" 
+            mb={2.5}
+            p={2}
+            borderRadius={2}
+            sx={{
+              backgroundColor: alpha(insight.color, 0.05),
+              border: `1px solid ${alpha(insight.color, 0.2)}`,
+              '&:hover': {
+                backgroundColor: alpha(insight.color, 0.08),
+                transform: 'translateX(4px)',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
+          >
+            <Avatar
+              sx={{
+                bgcolor: alpha(insight.color, 0.1),
+                color: insight.color,
+                width: 36,
+                height: 36,
+                mr: 2,
+                mt: 0.25
+              }}
+            >
+              <insight.icon fontSize="small" />
+            </Avatar>
+            <Box flex={1}>
+              <Typography 
+                variant="subtitle2" 
+                fontWeight="600" 
+                sx={{ color: 'text.primary', mb: 0.5 }}
+              >
+                {insight.title}
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: 'text.secondary',
+                  lineHeight: 1.4
+                }}
+              >
+                {insight.value}
+              </Typography>
+            </Box>
+          </Box>
+        </motion.div>
+      ))}
+    </Box>
+  );
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -56,6 +302,7 @@ const Dashboard = () => {
     goals: [],
     transactions: [],
     advice: null,
+    lastMonthSummary: null,
   });
 
   useEffect(() => {
@@ -72,6 +319,7 @@ const Dashboard = () => {
         goalsRes,
         transactionsRes,
         adviceRes,
+        lastMonthSummaryRes,
       ] = await Promise.allSettled([
         transactionAPI.getSummary(),
         investmentAPI.getPortfolioSummary(),
@@ -79,6 +327,7 @@ const Dashboard = () => {
         goalAPI.getActive(),
         transactionAPI.getAll(),
         advisorAPI.getAdvice(),
+        transactionAPI.getMonthlySummary(1), // Last month data for comparison
       ]);
 
       setData({
@@ -86,8 +335,9 @@ const Dashboard = () => {
         portfolio: portfolioRes.status === 'fulfilled' ? portfolioRes.value.data : null,
         budget: budgetRes.status === 'fulfilled' ? budgetRes.value.data : null,
         goals: goalsRes.status === 'fulfilled' ? goalsRes.value.data : [],
-        transactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value.data.slice(0, 5) : [],
+        transactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value.data.slice(0, 10) : [],
         advice: adviceRes.status === 'fulfilled' ? adviceRes.value.data : null,
+        lastMonthSummary: lastMonthSummaryRes.status === 'fulfilled' ? lastMonthSummaryRes.value.data : null,
       });
     } catch (error) {
       console.error('Dashboard error:', error);
@@ -630,7 +880,7 @@ const Dashboard = () => {
 
       {/* Spending Analysis and Goals */}
       <Grid container spacing={3} mb={4}>
-        {/* Monthly Spending Trend - Placeholder for future enhancement */}
+        {/* Spending & Investment Insights */}
         <Grid item xs={12} md={6}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -639,26 +889,19 @@ const Dashboard = () => {
           >
             <Card sx={{ height: '450px' }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Box display="flex" alignItems="center" mb={3}>
+                <Box display="flex" alignItems="center" mb={2}>
                   <Assessment sx={{ mr: 1, color: (theme) => theme.palette.info.main }} />
                   <Typography variant="h6" fontWeight="600" sx={{ color: 'text.primary' }}>
-                    Spending Insights
+                    Smart Insights
                   </Typography>
                 </Box>
-                <Box 
-                  display="flex"
-                  flexDirection="column"
-                  alignItems="center"
-                  justifyContent="center"
-                  sx={{ flex: 1 }}
-                >
-                  <ShowChart sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
-                  <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2 }}>
-                    Coming Soon
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
-                    Monthly spending trends and insights will be available here
-                  </Typography>
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                  <SpendingAndInvestmentInsights 
+                    summaryData={data.summary} 
+                    portfolioData={data.portfolio}
+                    transactions={data.transactions}
+                    lastMonthData={data.lastMonthSummary}
+                  />
                 </Box>
               </CardContent>
             </Card>

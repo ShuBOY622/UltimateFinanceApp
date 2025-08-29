@@ -4,6 +4,7 @@ import com.financeapp.model.User;
 import com.financeapp.repository.UserRepository;
 import com.financeapp.service.PDFExportService;
 import com.financeapp.service.RewardService;
+import com.financeapp.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -30,6 +31,9 @@ public class UserController {
 
     @Autowired
     private PDFExportService pdfExportService;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @GetMapping("/profile")
     public ResponseEntity<User> getUserProfile(Authentication authentication) {
@@ -106,5 +110,26 @@ public class UserController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(pdfBytes);
+    }
+
+    @DeleteMapping("/transactions/all")
+    public ResponseEntity<Map<String, Object>> deleteAllTransactions(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        
+        try {
+            transactionService.deleteAllUserTransactions(user);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "All transactions deleted successfully");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Failed to delete transactions: " + e.getMessage());
+            
+            return ResponseEntity.status(500).body(response);
+        }
     }
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   Box,
   Card,
@@ -25,7 +25,10 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Paper
+  Paper,
+  IconButton,
+  Skeleton,
+  Container
 } from '@mui/material';
 import {
   Person,
@@ -41,7 +44,13 @@ import {
   Redeem,
   Settings,
   Security,
-  Notifications
+  Notifications,
+  DeleteForever,
+  Warning,
+  CheckCircle,
+  Schedule,
+  LocalAtm,
+  Assessment
 } from '@mui/icons-material';
 
 const Profile = () => {
@@ -51,7 +60,11 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [redeemDialog, setRedeemDialog] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [redeemAmount, setRedeemAmount] = useState('');
+  const [transactionStats, setTransactionStats] = useState(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -64,6 +77,7 @@ const Profile = () => {
   useEffect(() => {
     fetchProfile();
     fetchRewardPoints();
+    fetchTransactionStats();
   }, []);
 
   const fetchProfile = async () => {
@@ -91,6 +105,15 @@ const Profile = () => {
       setRewardPoints(response.data.rewardPoints);
     } catch (error) {
       console.error('Rewards error:', error);
+    }
+  };
+
+  const fetchTransactionStats = async () => {
+    try {
+      const response = await api.get('/transactions/summary');
+      setTransactionStats(response.data);
+    } catch (error) {
+      console.error('Transaction stats error:', error);
     }
   };
 
@@ -148,6 +171,33 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteAllTransactions = async () => {
+    if (deleteConfirmation !== 'DELETE ALL MY TRANSACTIONS') {
+      toast.error('Please type the exact confirmation text');
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const response = await api.delete('/user/transactions/all');
+      
+      if (response.data.success) {
+        toast.success('All transactions deleted successfully!');
+        setDeleteDialog(false);
+        setDeleteConfirmation('');
+        // Refresh transaction stats
+        fetchTransactionStats();
+      } else {
+        toast.error(response.data.message || 'Failed to delete transactions');
+      }
+    } catch (error) {
+      toast.error('Failed to delete transactions');
+      console.error('Delete error:', error);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -166,30 +216,68 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        >
-          <Person sx={{ fontSize: 60, color: (theme) => theme.palette.primary.main }} />
-        </motion.div>
-      </Box>
+      <Container maxWidth="xl">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          >
+            <Person sx={{ fontSize: 60, color: (theme) => theme.palette.primary.main }} />
+          </motion.div>
+        </Box>
+      </Container>
     );
   }
 
   return (
-    <Box>
+    <Container maxWidth="xl">
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Profile Settings
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your account settings and preferences
-          </Typography>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Box>
+            <Typography 
+              variant="h4" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Profile Settings
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Manage your account settings and preferences
+            </Typography>
+          </Box>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button
+              variant="contained"
+              startIcon={<DeleteForever />}
+              onClick={() => setDeleteDialog(true)}
+              sx={{
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                },
+                borderRadius: 2,
+                px: 3
+              }}
+            >
+              Delete All Transactions
+            </Button>
+          </motion.div>
         </Box>
-      </Box>
+      </motion.div>
 
       <Grid container spacing={3}>
         {/* Profile Information */}
@@ -566,7 +654,118 @@ const Profile = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+
+      {/* Delete All Transactions Confirmation Dialog */}
+      <Dialog 
+        open={deleteDialog} 
+        onClose={() => setDeleteDialog(false)} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Warning sx={{ color: '#ef4444', fontSize: 28 }} />
+            <Typography variant="h6" fontWeight="bold" color="text.primary">
+              Delete All Transactions
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 3,
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              ⚠️ PERMANENT ACTION WARNING
+            </Typography>
+            <Typography variant="body2" paragraph>
+              This action will permanently delete ALL of your transaction data. This includes:
+            </Typography>
+            <Typography component="ul" variant="body2" sx={{ mt: 1, pl: 2 }}>
+              <li>All income and expense records</li>
+              <li>Transaction history and descriptions</li>
+              <li>Category breakdowns and analytics</li>
+              <li>Financial summaries and reports</li>
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 2, fontWeight: 'bold', color: '#ef4444' }}>
+              This action CANNOT be undone!
+            </Typography>
+          </Alert>
+          
+          <Typography variant="body1" gutterBottom color="text.primary">
+            To confirm this action, type the following text exactly:
+          </Typography>
+          <Typography 
+            variant="h6" 
+            fontWeight="bold" 
+            sx={{ 
+              p: 2, 
+              background: 'rgba(99, 102, 241, 0.1)', 
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: 2,
+              mb: 2,
+              color: '#6366f1',
+              textAlign: 'center',
+              fontFamily: 'monospace'
+            }}
+          >
+            DELETE ALL MY TRANSACTIONS
+          </Typography>
+          
+          <TextField
+            fullWidth
+            label="Confirmation Text"
+            value={deleteConfirmation}
+            onChange={(e) => setDeleteConfirmation(e.target.value)}
+            placeholder="Type: DELETE ALL MY TRANSACTIONS"
+            error={deleteConfirmation && deleteConfirmation !== 'DELETE ALL MY TRANSACTIONS'}
+            helperText={deleteConfirmation && deleteConfirmation !== 'DELETE ALL MY TRANSACTIONS' ? 'Text must match exactly' : ''}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => {
+              setDeleteDialog(false);
+              setDeleteConfirmation('');
+            }}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteAllTransactions}
+            variant="contained"
+            disabled={deleteConfirmation !== 'DELETE ALL MY TRANSACTIONS' || deleteLoading}
+            startIcon={deleteLoading ? null : <DeleteForever />}
+            sx={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+              },
+              '&:disabled': {
+                background: 'rgba(239, 68, 68, 0.3)',
+                color: 'rgba(255, 255, 255, 0.3)',
+              }
+            }}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete All Transactions'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
   );
 };
 

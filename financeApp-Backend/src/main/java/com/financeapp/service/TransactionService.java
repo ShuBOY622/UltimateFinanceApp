@@ -138,6 +138,13 @@ public class TransactionService {
         transactionRepository.delete(transaction);
     }
 
+    public void deleteAllUserTransactions(User user) {
+        List<Transaction> userTransactions = transactionRepository.findByUserOrderByTransactionDateDesc(user);
+        if (!userTransactions.isEmpty()) {
+            transactionRepository.deleteAll(userTransactions);
+        }
+    }
+
     public Map<String, Object> getFinancialSummary(User user) {
         Map<String, Object> summary = new HashMap<>();
         

@@ -66,6 +66,7 @@ const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [summaryData, setSummaryData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [page, setPage] = useState(0);
@@ -115,6 +116,7 @@ const Transactions = () => {
 
   useEffect(() => {
     fetchTransactions();
+    fetchSummaryData();
   }, []);
 
   // Check if user came from dashboard and trigger pulse effect
@@ -144,6 +146,15 @@ const Transactions = () => {
       console.error('Transactions error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSummaryData = async () => {
+    try {
+      const response = await api.get('/transactions/summary');
+      setSummaryData(response.data);
+    } catch (error) {
+      console.error('Summary data error:', error);
     }
   };
 
@@ -214,6 +225,7 @@ const Transactions = () => {
       }
 
       fetchTransactions();
+      fetchSummaryData(); // Refresh summary data for charts
       handleCloseDialog();
     } catch (error) {
       toast.error('Failed to save transaction');
@@ -227,6 +239,7 @@ const Transactions = () => {
         await api.delete(`/transactions/${id}`);
         toast.success('Transaction deleted successfully!');
         fetchTransactions();
+        fetchSummaryData(); // Refresh summary data for charts
       } catch (error) {
         toast.error('Failed to delete transaction');
         console.error('Delete transaction error:', error);
@@ -237,6 +250,7 @@ const Transactions = () => {
   const handleStatementUploadSuccess = (result) => {
     // Refresh transactions after successful import
     fetchTransactions();
+    fetchSummaryData(); // Refresh summary data for charts
     setShowStatementUpload(false);
     toast.success(`Imported ${result.successCount} transactions successfully!`);
   };
@@ -407,8 +421,8 @@ const Transactions = () => {
         </Card>
 
         {/* Spending Analysis */}
-        <Card sx={{ mb: 3 }}>
-          <SpendingChart />
+        <Card sx={{ mb: 3, height: '450px' }}>
+          <SpendingChart data={summaryData} />
         </Card>
 
         {/* Transactions Table */}

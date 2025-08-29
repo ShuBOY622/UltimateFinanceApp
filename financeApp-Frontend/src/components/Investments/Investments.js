@@ -48,7 +48,8 @@ import {
   Error as ErrorIcon,
   Schedule,
   ToggleOn,
-  ToggleOff
+  ToggleOff,
+  CloudUpload
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -57,6 +58,7 @@ import dayjs from 'dayjs';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import InvestmentCharts from './InvestmentCharts';
+import InvestmentStatementUpload from './InvestmentStatementUpload';
 import { styled } from '@mui/material/styles';
 
 const StyledCard = styled(Card)(({ theme, profit }) => ({
@@ -121,6 +123,7 @@ const Investments = () => {
   const [portfolioSummary, setPortfolioSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [apiStatus, setApiStatus] = useState(null);
@@ -388,6 +391,18 @@ const Investments = () => {
     });
   };
 
+  const handleUploadSuccess = (result) => {
+    // Refresh investments and portfolio summary after successful upload
+    fetchInvestments();
+    fetchPortfolioSummary();
+    setOpenUploadDialog(false);
+    
+    // Show additional success message
+    if (result.successCount > 0) {
+      toast.success(`Successfully imported ${result.successCount} investments from ${result.platform} statement!`);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -495,6 +510,23 @@ const Investments = () => {
             </Typography>
           </Box>
           <Box display="flex" gap={1}>
+            <Tooltip title="Import Investment Statement">
+              <Button
+                variant="outlined"
+                startIcon={<CloudUpload />}
+                onClick={() => setOpenUploadDialog(true)}
+                sx={{
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                  }
+                }}
+              >
+                Import Statement
+              </Button>
+            </Tooltip>
             <Tooltip title="Update Market Prices">
               <IconButton onClick={updateMarketPrices} color="primary">
                 <RefreshIcon />
@@ -1059,6 +1091,38 @@ const Investments = () => {
             {editingInvestment ? 'Update' : 'Add'} Investment
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Investment Statement Upload Dialog */}
+      <Dialog
+        open={openUploadDialog}
+        onClose={() => setOpenUploadDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }
+        }}
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Box display="flex" alignItems="center">
+              <CloudUpload sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6" fontWeight="bold">
+                Import Investment Statement
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <InvestmentStatementUpload
+            onUploadSuccess={handleUploadSuccess}
+            onClose={() => setOpenUploadDialog(false)}
+          />
+        </DialogContent>
       </Dialog>
     </Box>
   );

@@ -190,6 +190,18 @@ export const investmentAPI = {
   getSuggestions: () => api.get('/investments/suggestions'),
   updatePrices: () => api.post('/investments/update-prices'),
   getDashboard: () => api.get('/investments/dashboard'),
+  uploadStatement: (file, platform) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('platform', platform);
+    
+    return api.post('/investments/upload-statement', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 30000, // 30 seconds for file upload
+    });
+  },
 };
 
 export const budgetAPI = {

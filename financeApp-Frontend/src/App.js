@@ -27,6 +27,7 @@ import Budget from './components/Budget/Budget';
 import Goals from './components/Goals/Goals';
 import Transactions from './components/Transactions/Transactions';
 import StatementUpload from './components/Statements/StatementUpload';
+import Profile from './components/Profile/Profile';
 
 // Context
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -188,7 +189,10 @@ function AuthenticatedApp() {
             }}
           >
             <MenuItem 
-              onClick={handleUserMenuClose}
+              onClick={() => {
+                navigate('/profile');
+                handleUserMenuClose();
+              }}
               sx={{
                 '&:hover': {
                   backgroundColor: 'rgba(99, 102, 241, 0.1)'
@@ -389,6 +393,20 @@ function AuthenticatedApp() {
                       </Typography>
                       <StatementUpload />
                     </Box>
+                  </motion.div>
+                } 
+              />
+              <Route 
+                path="/profile" 
+                element={
+                  <motion.div
+                    key="profile"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Profile />
                   </motion.div>
                 } 
               />
