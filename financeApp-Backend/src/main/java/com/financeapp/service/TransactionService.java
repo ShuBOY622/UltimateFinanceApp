@@ -202,7 +202,8 @@ public class TransactionService {
         summary.put("monthlyExpenses", monthlyExpenses);
         summary.put("monthlyBalance", monthlyIncome.subtract(monthlyExpenses));
         
-        // Calculate savings rate (monthly)
+        // Calculate savings rate (monthly) - Corrected formula
+        // Savings Rate = (Income - Expenses) / Income * 100
         BigDecimal monthlySavings = monthlyIncome.subtract(monthlyExpenses);
         BigDecimal savingsRate = BigDecimal.ZERO;
         if (monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {

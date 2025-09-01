@@ -204,7 +204,7 @@ const SpendingAndInvestmentInsights = ({ summaryData, portfolioData, transaction
           icon: SaveAlt,
           color: rateColor,
           title: 'Savings Rate',
-          value: `You saved ${savingsRate.toFixed(1)}% of your income this month.`,
+          value: `You saved ${Math.max(0, savingsRate).toFixed(1)}% of your income this month.`,
           type: 'savings'
         });
       }
@@ -298,6 +298,7 @@ const Dashboard = () => {
   const [data, setData] = useState({
     summary: null,
     portfolio: null,
+    portfolioDistribution: [],
     budget: null,
     goals: [],
     transactions: [],
@@ -315,6 +316,7 @@ const Dashboard = () => {
       const [
         summaryRes,
         portfolioRes,
+        portfolioDistributionRes,
         budgetRes,
         goalsRes,
         transactionsRes,
@@ -323,6 +325,7 @@ const Dashboard = () => {
       ] = await Promise.allSettled([
         transactionAPI.getSummary(),
         investmentAPI.getPortfolioSummary(),
+        investmentAPI.getPortfolioDistribution(),
         budgetAPI.getAnalysis(),
         goalAPI.getActive(),
         transactionAPI.getAll(),
@@ -333,6 +336,11 @@ const Dashboard = () => {
       setData({
         summary: summaryRes.status === 'fulfilled' ? summaryRes.value.data : null,
         portfolio: portfolioRes.status === 'fulfilled' ? portfolioRes.value.data : null,
+        portfolioDistribution: portfolioDistributionRes.status === 'fulfilled' ? 
+          (portfolioDistributionRes.value.data.byType || []).map(item => ({
+            name: item.name,
+            value: item.value
+          })) : [],
         budget: budgetRes.status === 'fulfilled' ? budgetRes.value.data : null,
         goals: goalsRes.status === 'fulfilled' ? goalsRes.value.data : [],
         transactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value.data.slice(0, 10) : [],
@@ -734,7 +742,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Net Worth"
-            value={formatCurrency((data.summary?.netBalance || 0) + (data.portfolio?.currentValue || 0))}
+            value={formatCurrency((data.summary?.netWorth || 0))}
             change={12.5}
             changeType="increase"
             icon={AccountBalance}
@@ -745,7 +753,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Cash Balance"
-            value={formatCurrency(data.summary?.cashBalance || data.summary?.netBalance)}
+            value={formatCurrency(data.summary?.cashBalance || 0)}
             change={8.2}
             changeType="increase"
             icon={AttachMoney}
@@ -789,7 +797,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Savings Rate"
-            value={`${Math.round(data.summary?.savingsRate || 0)}%`}
+            value={`${Math.max(0, Math.round(data.summary?.savingsRate || 0))}%`}
             change={5.2}
             changeType="increase"
             icon={SaveAlt}
@@ -821,10 +829,10 @@ const Dashboard = () => {
                     <Box width="100%" height="100%" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
                       <Box flexGrow={1} width="100%" display="flex" alignItems="center" justifyContent="center">
                         <PortfolioChart 
-                          data={[
-                            { name: 'Stocks', value: data.portfolio?.totalInvestment * 0.6 },
-                            { name: 'Bonds', value: data.portfolio?.totalInvestment * 0.3 },
-                            { name: 'Cash', value: data.portfolio?.totalInvestment * 0.1 },
+                          data={data.portfolioDistribution || [
+                            { name: 'Stocks', value: data.portfolio?.totalInvestment * 0.6 || 0 },
+                            { name: 'Bonds', value: data.portfolio?.totalInvestment * 0.3 || 0 },
+                            { name: 'Cash', value: data.portfolio?.totalInvestment * 0.1 || 0 },
                           ]}
                         />
                       </Box>
