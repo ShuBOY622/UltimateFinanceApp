@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
@@ -44,6 +44,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import api from '../../utils/api';
+import { useThemeContext } from '../../contexts/ThemeContext';
 
 const ChartCard = styled(Card)(({ theme }) => ({
   height: '100%',
@@ -66,6 +67,7 @@ const CHART_TYPES = [
 ];
 
 const InvestmentCharts = () => {
+  const { currentTheme } = useThemeContext();
   const [chartType, setChartType] = useState('distribution');
   const [portfolioData, setPortfolioData] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
@@ -106,15 +108,24 @@ const InvestmentCharts = () => {
       return (
         <Box
           sx={{
-            backgroundColor: 'background.paper',
+            backgroundColor: currentTheme === 'dark' 
+              ? 'rgba(30, 41, 59, 0.9)' 
+              : 'rgba(255, 255, 255, 0.9)',
             border: '1px solid',
-            borderColor: 'divider',
+            borderColor: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
             borderRadius: 1,
             p: 1.5,
-            boxShadow: 2
+            boxShadow: currentTheme === 'dark' 
+              ? '0 4px 20px rgba(0, 0, 0, 0.5)' 
+              : '0 4px 20px rgba(0, 0, 0, 0.1)',
+            backdropFilter: 'blur(10px)'
           }}
         >
-          <Typography variant="body2" fontWeight="bold">
+          <Typography 
+            variant="body2" 
+            fontWeight="bold"
+            sx={{ color: currentTheme === 'dark' ? '#fff' : '#000' }}
+          >
             {label}
           </Typography>
           {payload.map((entry, index) => (
@@ -142,7 +153,7 @@ const InvestmentCharts = () => {
       <text
         x={x}
         y={y}
-        fill="white"
+        fill={currentTheme === 'dark' ? "white" : "rgba(15, 23, 42, 0.95)"}
         textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
         fontSize="12"
@@ -199,20 +210,36 @@ const InvestmentCharts = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <ListItem>
+                <ListItem sx={{ 
+                  color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)'
+                }}>
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: COLORS[index % COLORS.length], width: 24, height: 24 }}>
-                      <Box width={12} height={12} bgcolor="white" borderRadius="50%" />
+                      <Box 
+                        width={12} 
+                        height={12} 
+                        bgcolor={currentTheme === 'dark' ? "white" : "black"} 
+                        borderRadius="50%" 
+                      />
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={item.name}
                     secondary={formatCurrency(item.value)}
-                    primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
-                    secondaryTypographyProps={{ variant: 'caption' }}
+                    primaryTypographyProps={{ 
+                      variant: 'body2', 
+                      fontWeight: 'medium',
+                      sx: { color: currentTheme === 'dark' ? '#fff' : 'rgba(15, 23, 42, 0.95)' }
+                    }}
+                    secondaryTypographyProps={{ 
+                      variant: 'caption',
+                      sx: { color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)' }
+                    }}
                   />
                 </ListItem>
-                {index < portfolioData.byType.length - 1 && <Divider />}
+                {index < portfolioData.byType.length - 1 && <Divider sx={{ 
+                  borderColor: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' 
+                }} />}
               </motion.div>
             ))}
           </List>
@@ -253,9 +280,17 @@ const InvestmentCharts = () => {
         <Grid item xs={12}>
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'} 
+              />
+              <XAxis 
+                dataKey="name" 
+                stroke={currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'}
+              />
+              <YAxis 
+                stroke={currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'}
+              />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Bar
@@ -296,9 +331,17 @@ const InvestmentCharts = () => {
     return (
       <ResponsiveContainer width="100%" height={400}>
         <AreaChart data={portfolioData.bySector}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            stroke={currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'} 
+          />
+          <XAxis 
+            dataKey="name" 
+            stroke={currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'}
+          />
+          <YAxis 
+            stroke={currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'}
+          />
           <Tooltip content={<CustomTooltip />} />
           <Area
             type="monotone"
@@ -319,11 +362,23 @@ const InvestmentCharts = () => {
     }
 
     return (
-      <ChartCard>
+      <ChartCard sx={{ 
+        background: currentTheme === 'dark' 
+          ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)'
+          : 'rgba(255, 255, 255, 0.8)',
+        border: currentTheme === 'dark' 
+          ? '1px solid rgba(255, 255, 255, 0.1)'
+          : '1px solid rgba(0, 0, 0, 0.08)',
+        backdropFilter: 'blur(10px)'
+      }}>
         <CardContent>
           <Box display="flex" alignItems="center" mb={2}>
             <EmojiEvents sx={{ color: '#FFD700', mr: 1 }} />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography 
+              variant="h6" 
+              fontWeight="bold"
+              sx={{ color: currentTheme === 'dark' ? '#fff' : 'rgba(15, 23, 42, 0.95)' }}
+            >
               Top Performers
             </Typography>
           </Box>
@@ -335,7 +390,9 @@ const InvestmentCharts = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <ListItem>
+                <ListItem sx={{ 
+                  color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)'
+                }}>
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: '#4caf50', width: 32, height: 32 }}>
                       <TrendingUp />
@@ -344,18 +401,34 @@ const InvestmentCharts = () => {
                   <ListItemText
                     primary={investment.symbol}
                     secondary={investment.name}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
+                    primaryTypographyProps={{ 
+                      fontWeight: 'bold',
+                      sx: { color: currentTheme === 'dark' ? '#fff' : 'rgba(15, 23, 42, 0.95)' }
+                    }}
+                    secondaryTypographyProps={{ 
+                      sx: { color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)' }
+                    }}
                   />
                   <Box textAlign="right">
-                    <Typography variant="body2" color="#4caf50" fontWeight="bold">
+                    <Typography 
+                      variant="body2" 
+                      color="#4caf50" 
+                      fontWeight="bold"
+                      sx={{ color: currentTheme === 'dark' ? '#4caf50' : '#2e7d32' }}
+                    >
                       +{formatCurrency(investment.gainLoss)}
                     </Typography>
-                    <Typography variant="caption" color="#4caf50">
+                    <Typography 
+                      variant="caption" 
+                      sx={{ color: currentTheme === 'dark' ? '#4caf50' : '#2e7d32' }}
+                    >
                       +{investment.gainLossPercentage?.toFixed(2)}%
                     </Typography>
                   </Box>
                 </ListItem>
-                {index < 4 && <Divider />}
+                {index < 4 && <Divider sx={{ 
+                  borderColor: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' 
+                }} />}
               </motion.div>
             ))}
           </List>
@@ -370,11 +443,23 @@ const InvestmentCharts = () => {
     }
 
     return (
-      <ChartCard>
+      <ChartCard sx={{ 
+        background: currentTheme === 'dark' 
+          ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)'
+          : 'rgba(255, 255, 255, 0.8)',
+        border: currentTheme === 'dark' 
+          ? '1px solid rgba(255, 255, 255, 0.1)'
+          : '1px solid rgba(0, 0, 0, 0.08)',
+        backdropFilter: 'blur(10px)'
+      }}>
         <CardContent>
           <Box display="flex" alignItems="center" mb={2}>
             <Warning sx={{ color: '#f44336', mr: 1 }} />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography 
+              variant="h6" 
+              fontWeight="bold"
+              sx={{ color: currentTheme === 'dark' ? '#fff' : 'rgba(15, 23, 42, 0.95)' }}
+            >
               Needs Attention
             </Typography>
           </Box>
@@ -386,7 +471,9 @@ const InvestmentCharts = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <ListItem>
+                <ListItem sx={{ 
+                  color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)'
+                }}>
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: '#f44336', width: 32, height: 32 }}>
                       <TrendingDown />
@@ -395,18 +482,33 @@ const InvestmentCharts = () => {
                   <ListItemText
                     primary={investment.symbol}
                     secondary={investment.name}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
+                    primaryTypographyProps={{ 
+                      fontWeight: 'bold',
+                      sx: { color: currentTheme === 'dark' ? '#fff' : 'rgba(15, 23, 42, 0.95)' }
+                    }}
+                    secondaryTypographyProps={{ 
+                      sx: { color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)' }
+                    }}
                   />
                   <Box textAlign="right">
-                    <Typography variant="body2" color="#f44336" fontWeight="bold">
+                    <Typography 
+                      variant="body2" 
+                      fontWeight="bold"
+                      sx={{ color: currentTheme === 'dark' ? '#f44336' : '#c62828' }}
+                    >
                       {formatCurrency(investment.gainLoss)}
                     </Typography>
-                    <Typography variant="caption" color="#f44336">
+                    <Typography 
+                      variant="caption"
+                      sx={{ color: currentTheme === 'dark' ? '#f44336' : '#c62828' }}
+                    >
                       {investment.gainLossPercentage?.toFixed(2)}%
                     </Typography>
                   </Box>
                 </ListItem>
-                {index < 4 && <Divider />}
+                {index < 4 && <Divider sx={{ 
+                  borderColor: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' 
+                }} />}
               </motion.div>
             ))}
           </List>
@@ -422,7 +524,10 @@ const InvestmentCharts = () => {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
-          <Assessment sx={{ fontSize: 60, color: (theme) => theme.palette.primary.main }} />
+          <Assessment sx={{ 
+            fontSize: 60, 
+            color: currentTheme === 'dark' ? '#818cf8' : '#4f46e5' 
+          }} />
         </motion.div>
       </Box>
     );
@@ -443,9 +548,28 @@ const InvestmentCharts = () => {
               exclusive
               onChange={(event, newType) => newType && setChartType(newType)}
               aria-label="chart type"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                  borderColor: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+                  '&.Mui-selected': {
+                    backgroundColor: currentTheme === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                    color: currentTheme === 'dark' ? '#fff' : '#4f46e5',
+                    borderColor: currentTheme === 'dark' ? 'rgba(99, 102, 241, 0.5)' : 'rgba(99, 102, 241, 0.5)',
+                  }
+                }
+              }}
             >
               {CHART_TYPES.map((type) => (
-                <ToggleButton key={type.value} value={type.value}>
+                <ToggleButton 
+                  key={type.value} 
+                  value={type.value}
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: currentTheme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)',
+                    }
+                  }}
+                >
                   {type.label}
                 </ToggleButton>
               ))}
@@ -455,9 +579,22 @@ const InvestmentCharts = () => {
 
         {/* Main Chart */}
         <Grid item xs={12} lg={8}>
-          <ChartCard>
+          <ChartCard sx={{ 
+            background: currentTheme === 'dark' 
+              ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)'
+              : 'rgba(255, 255, 255, 0.8)',
+            border: currentTheme === 'dark' 
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.08)',
+            backdropFilter: 'blur(10px)'
+          }}>
             <CardContent>
-              <Typography variant="h6" fontWeight="bold" mb={2}>
+              <Typography 
+                variant="h6" 
+                fontWeight="bold" 
+                mb={2}
+                sx={{ color: currentTheme === 'dark' ? '#fff' : 'rgba(15, 23, 42, 0.95)' }}
+              >
                 {chartType === 'distribution' && 'Portfolio Distribution by Type'}
                 {chartType === 'performance' && 'Investment Performance'}
                 {chartType === 'sectors' && 'Sector Allocation'}

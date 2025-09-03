@@ -234,7 +234,7 @@ const MonthlyTransactions = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <Box mb={4}>
+          <Box mb={4} sx={{ height: '450px' }}>
             <SpendingChart 
               data={{
                 expensesByCategory: Object.entries(summary.expensesByCategory || {})

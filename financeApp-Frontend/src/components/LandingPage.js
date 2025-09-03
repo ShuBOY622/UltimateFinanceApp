@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -28,6 +28,8 @@ import {
   AutoGraph,
   Speed,
   Security,
+  Menu as MenuIcon,
+  Close as CloseIcon,
   EmojiEvents,
   ArrowDownward,
   Login as LoginIcon,
@@ -40,11 +42,12 @@ import {
 } from '@mui/icons-material';
 import { motion, useAnimation, useInView } from 'framer-motion';
 import { alpha } from '@mui/material/styles';
-// Placeholder images - using SVGs we created
+import { useThemeContext } from '../contexts/ThemeContext';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { currentTheme } = useThemeContext();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
   const controls = useAnimation();
@@ -65,45 +68,35 @@ const LandingPage = () => {
     setAnchorEl(null);
   };
 
+  // Features data
   const features = [
     {
       icon: <FileUpload sx={{ fontSize: 40 }} />,
       title: "Smart PDF Statement Parsing",
       description: "Tired of manually entering transactions? Just upload your bank or UPI statements and let our AI extract all transactions automatically.",
-      color: "#6366f1"
+      color: currentTheme === 'dark' ? "#6366f1" : "#4f46e5"
     },
     {
       icon: <AutoGraph sx={{ fontSize: 40 }} />,
       title: "Live Investment Tracking",
       description: "Monitor your portfolio in real-time with live market data integration. Get instant updates on your stock and mutual fund performance.",
-      color: "#8b5cf6"
-    },
-    {
-      icon: <ShowChart sx={{ fontSize: 40 }} />,
-      title: "Beautiful Visualizations",
-      description: "Transform your financial data into stunning charts and graphs that make understanding your money habits effortless and enjoyable.",
-      color: "#10b981"
-    },
-    {
-      icon: <Insights sx={{ fontSize: 40 }} />,
-      title: "Spending Insights",
-      description: "Get personalized financial insights and recommendations based on your spending patterns to help you save smarter.",
-      color: "#f59e0b"
+      color: currentTheme === 'dark' ? "#8b5cf6" : "#7c3aed"
     },
     {
       icon: <Speed sx={{ fontSize: 40 }} />,
-      title: "Lightning Fast",
-      description: "Experience blazing fast performance with our optimized architecture that processes your data in milliseconds.",
-      color: "#ef4444"
+      title: "AI-Powered Financial Insights",
+      description: "Get personalized recommendations to optimize your spending, save more, and invest wisely based on your financial patterns.",
+      color: currentTheme === 'dark' ? "#f59e0b" : "#d97706"
     },
     {
       icon: <Security sx={{ fontSize: 40 }} />,
       title: "Bank-Level Security",
-      description: "Your financial data is protected with enterprise-grade encryption and never shared with third parties.",
-      color: "#06b6d4"
+      description: "Your financial data is protected with end-to-end encryption and never shared with third parties. Privacy is our priority.",
+      color: currentTheme === 'dark' ? "#10b981" : "#059669"
     }
   ];
 
+    // Features data
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -155,17 +148,21 @@ const LandingPage = () => {
       <AppBar 
         position="sticky" 
         sx={{ 
-          background: 'rgba(15, 15, 35, 0.8)',
+          background: currentTheme === 'dark' 
+            ? 'rgba(15, 15, 35, 0.8)'
+            : 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(20px)',
           border: 'none',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          boxShadow: currentTheme === 'dark' 
+            ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+            : '0 4px 12px rgba(0, 0, 0, 0.05)',
         }}
       >
         <Container maxWidth="xl">
           <Toolbar sx={{ height: '80px' }}>
             <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
               <img 
-                src="/finora.png" 
+                src={currentTheme === 'dark' ? "/finora.png" : "/DarkFinora.png"} 
                 alt="Finora Logo" 
                 style={{ 
                   height: 50, 
@@ -183,11 +180,17 @@ const LandingPage = () => {
                 onClick={() => navigate('/login')}
                 sx={{
                   borderRadius: '12px',
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'rgba(255, 255, 255, 0.9)',
+                  borderColor: currentTheme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.2)'
+                    : 'rgba(15, 23, 42, 0.2)',
+                  color: currentTheme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.9)'
+                    : 'rgba(15, 23, 42, 0.9)',
                   '&:hover': {
                     borderColor: 'rgba(99, 102, 241, 0.5)',
-                    background: 'rgba(99, 102, 241, 0.1)',
+                    background: currentTheme === 'dark' 
+                      ? 'rgba(99, 102, 241, 0.1)'
+                      : 'rgba(99, 102, 241, 0.05)',
                   }
                 }}
               >
@@ -230,7 +233,9 @@ const LandingPage = () => {
                     fontSize: { xs: '2.5rem', md: '3.5rem' },
                     lineHeight: 1.2,
                     mb: 3,
-                    background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)',
+                    background: currentTheme === 'dark' 
+                      ? 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)'
+                      : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent'
@@ -244,7 +249,9 @@ const LandingPage = () => {
                 variant="h5" 
                 sx={{ 
                   fontWeight: 400, 
-                  color: 'rgba(255, 255, 255, 0.8)',
+                  color: currentTheme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.8)'
+                    : 'rgba(15, 23, 42, 0.8)',
                   mb: 4,
                   maxWidth: 500
                 }}
@@ -308,7 +315,9 @@ const LandingPage = () => {
                         height: 32, 
                         fontSize: '0.75rem',
                         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                        border: '2px solid #0f0f23',
+                        border: currentTheme === 'dark' 
+                          ? '2px solid #0f0f23'
+                          : '2px solid #ffffff',
                         ml: i > 0 ? -1.5 : 0
                       }}
                     >
@@ -316,8 +325,15 @@ const LandingPage = () => {
                     </Avatar>
                   ))}
                 </Box>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                  Join <span style={{ color: 'white', fontWeight: 600 }}>10,000+</span> users who transformed their finances
+                <Typography variant="body2" sx={{ 
+                  color: currentTheme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.7)'
+                    : 'rgba(15, 23, 42, 0.7)'
+                }}>
+                  Join <span style={{ 
+                    color: currentTheme === 'dark' ? 'white' : 'rgba(15, 23, 42, 0.9)', 
+                    fontWeight: 600
+                  }}>10,000+</span> users who transformed their finances
                 </Typography>
               </Box>
             </Grid>
@@ -471,58 +487,59 @@ const LandingPage = () => {
                   whileHover={{ y: -10 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <Card
-                    sx={{
-                      height: '100%',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: 3,
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-                        transform: 'translateY(-5px)'
-                      }
-                    }}
-                  >
-                    <CardContent sx={{ p: 4 }}>
-                      <Box 
-                        sx={{ 
-                          width: 80, 
-                          height: 80, 
-                          borderRadius: '50%', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          mb: 3,
-                          background: `radial-gradient(circle, ${alpha(feature.color, 0.2)} 0%, transparent 70%)`,
-                          border: `1px solid ${alpha(feature.color, 0.3)}`
-                        }}
-                      >
-                        {feature.icon}
-                      </Box>
-                      <Typography 
-                        variant="h5" 
-                        sx={{ 
-                          fontWeight: 700, 
-                          mb: 2,
-                          color: 'white'
-                        }}
-                      >
-                        {feature.title}
-                      </Typography>
-                      <Typography 
-                        variant="body1" 
-                        sx={{ 
-                          color: 'rgba(255, 255, 255, 0.7)',
-                          lineHeight: 1.6
-                        }}
-                      >
-                        {feature.description}
-                      </Typography>
-                    </CardContent>
+                  <Card 
+                  sx={{ 
+                    height: '100%',
+                    background: currentTheme === 'dark' 
+                      ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                      : 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(20px)',
+                    border: currentTheme === 'dark' 
+                      ? '1px solid rgba(255, 255, 255, 0.1)'
+                      : '1px solid rgba(15, 23, 42, 0.08)',
+                    borderRadius: 3,
+                    boxShadow: currentTheme === 'dark' 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+                      : '0 4px 20px rgba(0, 0, 0, 0.08)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-8px)',
+                      background: currentTheme === 'dark' 
+                        ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)'
+                        : 'rgba(255, 255, 255, 0.8)',
+                      boxShadow: currentTheme === 'dark' 
+                        ? '0 12px 40px rgba(0, 0, 0, 0.4)'
+                        : '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    }
+                  }}
+                >
+                                      <CardContent>
+                    <Box sx={{ color: feature.color, mb: 2 }}>
+                      {feature.icon}
+                    </Box>
+                    <Typography 
+                      variant="h6" 
+                      fontWeight="bold" 
+                      gutterBottom
+                      sx={{ 
+                        color: currentTheme === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.95)'
+                          : 'rgba(15, 23, 42, 0.95)'
+                      }}
+                    >
+                      {feature.title}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: currentTheme === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.7)'
+                          : 'rgba(15, 23, 42, 0.7)'
+                      }}
+                    >
+                      {feature.description}
+                    </Typography>
+                  </CardContent>
                   </Card>
                 </motion.div>
               </Grid>
@@ -596,7 +613,9 @@ const LandingPage = () => {
                 sx={{ 
                   fontWeight: 800, 
                   mb: 4,
-                  background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)',
+                  background: currentTheme === 'dark' 
+                    ? 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)'
+                    : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
@@ -622,10 +641,10 @@ const LandingPage = () => {
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>1</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'white' }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: currentTheme === 'dark' ? 'white' : 'rgba(15, 23, 42, 0.95)' }}>
                       Upload Your Statements
                     </Typography>
-                    <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    <Typography variant="body1" sx={{ color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)' }}>
                       Simply upload your bank statements, UPI transactions, or investment reports in PDF, CSV, or Excel format.
                     </Typography>
                   </Box>
@@ -647,10 +666,10 @@ const LandingPage = () => {
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>2</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'white' }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: currentTheme === 'dark' ? 'white' : 'rgba(15, 23, 42, 0.95)' }}>
                       AI Processes Your Data
                     </Typography>
-                    <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    <Typography variant="body1" sx={{ color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)' }}>
                       Our advanced AI extracts and categorizes all your transactions automatically, saving you hours of manual work.
                     </Typography>
                   </Box>
@@ -672,11 +691,11 @@ const LandingPage = () => {
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>3</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'white' }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: currentTheme === 'dark' ? 'white' : 'rgba(15, 23, 42, 0.95)' }}>
                       Gain Financial Clarity
                     </Typography>
-                    <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      Visualize your spending patterns, track investments in real-time, and receive personalized insights to improve your financial health.
+                    <Typography variant="body1" sx={{ color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)' }}>
+                      Access powerful insights, track your net worth, and make smarter financial decisions with real-time data.
                     </Typography>
                   </Box>
                 </Box>
@@ -735,7 +754,9 @@ const LandingPage = () => {
                 sx={{ 
                   fontWeight: 800, 
                   mb: 2,
-                  background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)',
+                  background: currentTheme === 'dark' 
+                    ? 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)'
+                    : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
@@ -747,7 +768,9 @@ const LandingPage = () => {
                 variant="h5" 
                 sx={{ 
                   fontWeight: 400, 
-                  color: 'rgba(255, 255, 255, 0.7)',
+                  color: currentTheme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.7)'
+                    : 'rgba(15, 23, 42, 0.7)',
                   maxWidth: 700,
                   mx: 'auto'
                 }}
@@ -768,9 +791,13 @@ const LandingPage = () => {
                 >
                   <Card
                     sx={{
-                      background: 'rgba(255, 255, 255, 0.05)',
+                      background: currentTheme === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.05)'
+                        : 'rgba(255, 255, 255, 0.7)',
                       backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      border: currentTheme === 'dark' 
+                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                        : '1px solid rgba(15, 23, 42, 0.1)',
                       borderRadius: 3,
                       p: 3
                     }}
@@ -780,15 +807,15 @@ const LandingPage = () => {
                         U{item}
                       </Avatar>
                       <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'white' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: currentTheme === 'dark' ? 'white' : 'rgba(15, 23, 42, 0.95)' }}>
                           User {item}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                        <Typography variant="body2" sx={{ color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)' }}>
                           Finora User
                         </Typography>
                       </Box>
                     </Box>
-                    <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontStyle: 'italic', mb: 2 }}>
+                    <Typography variant="body1" sx={{ color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)', fontStyle: 'italic', mb: 2 }}>
                       "Finora completely transformed how I manage my finances. The automatic statement parsing saves me hours every month, and the investment tracking keeps me on top of my portfolio."
                     </Typography>
                     <Box sx={{ display: 'flex', color: '#fbbf24' }}>
@@ -817,7 +844,9 @@ const LandingPage = () => {
             sx={{ 
               fontWeight: 800, 
               mb: 3,
-              background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)',
+              background: currentTheme === 'dark' 
+                ? 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)'
+                : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
@@ -829,7 +858,9 @@ const LandingPage = () => {
             variant="h5" 
             sx={{ 
               fontWeight: 400, 
-              color: 'rgba(255, 255, 255, 0.8)',
+              color: currentTheme === 'dark' 
+                ? 'rgba(255, 255, 255, 0.8)'
+                : 'rgba(15, 23, 42, 0.8)',
               mb: 5,
               maxWidth: 700,
               mx: 'auto'
@@ -872,11 +903,17 @@ const LandingPage = () => {
                 px: 4,
                 fontSize: '1.1rem',
                 fontWeight: 600,
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                color: 'white',
+                borderColor: currentTheme === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.3)'
+                  : 'rgba(15, 23, 42, 0.3)',
+                color: currentTheme === 'dark' ? 'white' : 'rgba(15, 23, 42, 0.9)',
                 '&:hover': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                  background: 'rgba(255, 255, 255, 0.1)'
+                  borderColor: currentTheme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.5)'
+                    : 'rgba(15, 23, 42, 0.5)',
+                  background: currentTheme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.1)'
+                    : 'rgba(15, 23, 42, 0.05)'
                 }
               }}
             >
@@ -890,7 +927,9 @@ const LandingPage = () => {
       <Box 
         sx={{ 
           py: 4, 
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          borderTop: currentTheme === 'dark' 
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(15, 23, 42, 0.1)',
           textAlign: 'center',
           width: '100%',
           display: 'flex',
@@ -898,7 +937,7 @@ const LandingPage = () => {
         }}
       >
         <Container maxWidth="xl">
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+            <Typography variant="body2" sx={{ color: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(15, 23, 42, 0.6)' }}>
               © {new Date().getFullYear()} Finora. All rights reserved.
             </Typography>
           </Container>

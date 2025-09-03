@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, useMediaQuery, Avatar, Menu, MenuItem, Divider, Button, useTheme } from '@mui/material';
+import { ThemeProvider as MuiThemeProvider, CssBaseline, Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, useMediaQuery, Avatar, Menu, MenuItem, Divider, Button, useTheme } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 
@@ -31,14 +31,25 @@ import Transactions from './components/Transactions/Transactions';
 import StatementUpload from './components/Statements/StatementUpload';
 import Profile from './components/Profile/Profile';
 import SubscriptionsPage from './components/Subscriptions/SubscriptionsPage';
+import ThemeToggle from './components/ThemeToggle';
 
 // Context
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import theme from './theme/theme';
+import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
+  const { theme } = useThemeContext();
+  
+  return (
+    <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
         <Router>
@@ -46,7 +57,9 @@ function App() {
             sx={{ 
               display: 'flex', 
               minHeight: '100vh',
-              background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%)',
+              background: theme.palette.mode === 'dark' 
+                ? 'linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%)'
+                : 'none',
             }}
           >
             <AnimatePresence mode="wait">
@@ -63,27 +76,34 @@ function App() {
             toastOptions={{
               duration: 4000,
               style: {
-                background: 'rgba(255, 255, 255, 0.1)',
+                background: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#fff',
+                border: theme.palette.mode === 'dark' 
+                  ? '1px solid rgba(255, 255, 255, 0.2)'
+                  : '1px solid rgba(0, 0, 0, 0.1)',
+                color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                 borderRadius: '12px',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                boxShadow: theme.palette.mode === 'dark' 
+                  ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+                  : '0 8px 32px rgba(0, 0, 0, 0.1)',
               },
             }}
           />
         </Router>
       </AuthProvider>
-    </ThemeProvider>
+    </MuiThemeProvider>
   );
 }
 
 function AuthenticatedApp() {
   const { user, logout } = useAuth();
-  const theme = useTheme();
+  const { theme } = useThemeContext();
+  const muiTheme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = React.useState(!isMobile);
   const [userMenuAnchor, setUserMenuAnchor] = React.useState(null);
 
@@ -125,11 +145,18 @@ function AuthenticatedApp() {
       <AppBar
         position="fixed"
         sx={{
-          zIndex: theme.zIndex.drawer + 1,
-          background: 'rgba(15, 15, 35, 0.8)',
+          zIndex: muiTheme.zIndex.drawer + 1,
+          background: theme.palette.mode === 'dark' 
+            ? 'rgba(15, 15, 35, 0.8)'
+            : 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(20px)',
           border: 'none',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          borderBottom: theme.palette.mode === 'light' 
+            ? '1px solid rgba(15, 23, 42, 0.08)'
+            : 'none',
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+            : '0 4px 12px rgba(15, 23, 42, 0.05)',
           height: '80px',
         }}
       >
@@ -139,9 +166,15 @@ function AuthenticatedApp() {
             onClick={() => setDrawerOpen(!drawerOpen)}
             sx={{ 
               mr: 2,
+              color: theme.palette.mode === 'dark' 
+                ? 'rgba(255, 255, 255, 0.9)'
+                : 'rgba(15, 23, 42, 0.9)',
               '&:hover': {
                 transform: 'scale(1.1)',
-                transition: 'transform 0.2s ease-in-out'
+                transition: 'transform 0.2s ease-in-out',
+                backgroundColor: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(0, 0, 0, 0.04)',
               }
             }}
           >
@@ -150,7 +183,7 @@ function AuthenticatedApp() {
           <div>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <img 
-                src="/finora.png" 
+                src={theme.palette.mode === 'dark' ? "/finora.png" : "/DarkFinora.png"} 
                 alt="Finora Logo" 
                 style={{ 
                   height: 120, 
@@ -163,6 +196,7 @@ function AuthenticatedApp() {
             </Box>
           </div>
           <Box sx={{ flexGrow: 1 }} />
+          <ThemeToggle />
           <Button
             onClick={handleUserMenuOpen}
             startIcon={
@@ -177,10 +211,13 @@ function AuthenticatedApp() {
               </Avatar>
             }
             sx={{ 
-              color: 'white', 
+              color: theme.palette.mode === 'dark' ? 'white' : 'rgba(15, 23, 42, 0.9)',
               textTransform: 'none',
+              ml: 1,
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                backgroundColor: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(0, 0, 0, 0.04)',
               }
             }}
           >
@@ -192,9 +229,13 @@ function AuthenticatedApp() {
             onClose={handleUserMenuClose}
             PaperProps={{
               sx: {
-                background: 'rgba(255, 255, 255, 0.1)',
+                background: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                border: theme.palette.mode === 'dark' 
+                  ? '1px solid rgba(255, 255, 255, 0.2)'
+                  : '1px solid rgba(0, 0, 0, 0.1)',
                 borderRadius: '12px',
                 mt: 1,
               },
@@ -206,19 +247,33 @@ function AuthenticatedApp() {
                 handleUserMenuClose();
               }}
               sx={{
+                color: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.9)'
+                  : 'rgba(15, 23, 42, 0.9)',
                 '&:hover': {
-                  backgroundColor: 'rgba(99, 102, 241, 0.1)'
+                  backgroundColor: theme.palette.mode === 'dark' 
+                    ? 'rgba(99, 102, 241, 0.1)'
+                    : 'rgba(124, 58, 237, 0.08)',
                 }
               }}
             >
               <PersonIcon sx={{ mr: 1 }} /> Profile
             </MenuItem>
-            <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+            <Divider sx={{ 
+              borderColor: theme.palette.mode === 'dark' 
+                ? 'rgba(255, 255, 255, 0.1)'
+                : 'rgba(15, 23, 42, 0.1)'
+            }} />
             <MenuItem 
               onClick={handleLogout}
               sx={{
+                color: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.9)'
+                  : 'rgba(15, 23, 42, 0.9)',
                 '&:hover': {
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                  backgroundColor: theme.palette.mode === 'dark' 
+                    ? 'rgba(239, 68, 68, 0.1)'
+                    : 'rgba(239, 68, 68, 0.08)',
                 }
               }}
             >
@@ -240,10 +295,14 @@ function AuthenticatedApp() {
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
-            background: 'rgba(15, 15, 35, 0.95)',
+            background: theme.palette.mode === 'dark' 
+              ? 'rgba(15, 15, 35, 0.95)'
+              : 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(20px)',
             border: 'none',
-            borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRight: theme.palette.mode === 'dark' 
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(15, 23, 42, 0.08)',
           },
         }}
       >
@@ -264,12 +323,24 @@ function AuthenticatedApp() {
                   sx={{
                     borderRadius: '12px',
                     mb: 1,
-                    background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
+                    background: isActive 
+                      ? theme.palette.mode === 'dark' 
+                        ? 'rgba(99, 102, 241, 0.1)'
+                        : 'rgba(124, 58, 237, 0.12)'
+                      : 'transparent',
+                    border: isActive 
+                      ? theme.palette.mode === 'dark' 
+                        ? '1px solid rgba(99, 102, 241, 0.3)'
+                        : '1px solid rgba(124, 58, 237, 0.2)'
+                      : '1px solid transparent',
                     '&:hover': {
-                      background: 'rgba(99, 102, 241, 0.1)',
+                      background: theme.palette.mode === 'dark' 
+                        ? 'rgba(99, 102, 241, 0.1)'
+                        : 'rgba(124, 58, 237, 0.08)',
                       transform: 'translateX(8px)',
-                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      border: theme.palette.mode === 'dark' 
+                        ? '1px solid rgba(99, 102, 241, 0.3)'
+                        : '1px solid rgba(124, 58, 237, 0.2)',
                     },
                     transition: 'all 0.2s ease-in-out',
                     cursor: 'pointer',
@@ -277,7 +348,13 @@ function AuthenticatedApp() {
                 >
                   <ListItemIcon 
                     sx={{ 
-                      color: isActive ? theme.palette.primary.light : theme.palette.primary.main,
+                      color: isActive 
+                        ? theme.palette.mode === 'dark' 
+                          ? muiTheme.palette.primary.light 
+                          : muiTheme.palette.primary.main
+                        : theme.palette.mode === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.7)'
+                          : 'rgba(15, 23, 42, 0.7)',
                       minWidth: 40
                     }}
                   >
@@ -288,7 +365,13 @@ function AuthenticatedApp() {
                     sx={{
                       '& .MuiTypography-root': {
                         fontWeight: isActive ? 700 : 600,
-                        color: isActive ? '#fff' : 'rgba(255, 255, 255, 0.8)'
+                        color: isActive 
+                          ? theme.palette.mode === 'dark' 
+                            ? '#fff' 
+                            : 'rgba(15, 23, 42, 0.95)'
+                          : theme.palette.mode === 'dark' 
+                            ? 'rgba(255, 255, 255, 0.8)'
+                            : 'rgba(15, 23, 42, 0.8)'
                       },
                     }}
                   />
@@ -304,9 +387,9 @@ function AuthenticatedApp() {
         component="main"
         sx={{
           flexGrow: 1,
-          transition: theme.transitions.create('margin', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
+          transition: muiTheme.transitions.create('margin', {
+            easing: muiTheme.transitions.easing.sharp,
+            duration: muiTheme.transitions.duration.leavingScreen,
           }),
           marginLeft: drawerOpen && !isMobile ? 0 : `-${drawerWidth}px`,
         }}
@@ -397,10 +480,19 @@ function AuthenticatedApp() {
                     transition={{ duration: 0.3 }}
                   >
                     <Box sx={{ maxWidth: '1200px', margin: '0 auto', p: 3 }}>
-                      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ color: 'text.primary' }}>
+                      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ 
+                        color: theme.palette.mode === 'dark' 
+                          ? 'text.primary' 
+                          : 'rgba(15, 23, 42, 0.95)'
+                      }}>
                         Upload Bank Statements
                       </Typography>
-                      <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
+                      <Typography variant="body1" sx={{ 
+                        color: theme.palette.mode === 'dark' 
+                          ? 'text.secondary' 
+                          : 'rgba(15, 23, 42, 0.7)',
+                        mb: 3 
+                      }}>
                         Parse and import transactions from your bank statements automatically
                       </Typography>
                       <StatementUpload />

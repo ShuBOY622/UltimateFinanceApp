@@ -422,7 +422,9 @@ const Transactions = () => {
 
         {/* Spending Analysis */}
         <Card sx={{ mb: 3, height: '450px' }}>
-          <SpendingChart data={summaryData} />
+          <Box sx={{ height: '100%' }}>
+            <SpendingChart data={summaryData} />
+          </Box>
         </Card>
 
         {/* Transactions Table */}
