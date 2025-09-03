@@ -12,7 +12,7 @@
     <artifactId>finance-app-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>finance-app-backend</name>
-    <description>Personal Finance App Backend</description>
+    <description>Finora - Personal Finance App Backend</description>
     <properties>
         <java.version>17</java.version>
     </properties>

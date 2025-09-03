@@ -1,0 +1,47 @@
+<svg width="500" height="400" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="500" height="400" fill="#1a1a2e" />
+  
+  <!-- Step 1 -->
+  <circle cx="100" cy="100" r="40" fill="#4f46e5" />
+  <text x="100" y="105" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">1</text>
+  <rect x="60" y="160" width="80" height="20" rx="4" fill="#374151" />
+  <rect x="50" y="190" width="100" height="15" rx="3" fill="#4b5563" />
+  
+  <!-- Arrow 1 -->
+  <line x1="140" y1="100" x2="210" y2="100" stroke="#6366f1" stroke-width="3" marker-end="url(#arrowhead)" />
+  
+  <!-- Step 2 -->
+  <circle cx="250" cy="100" r="40" fill="#8b5cf6" />
+  <text x="250" y="105" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">2</text>
+  <rect x="210" y="160" width="80" height="20" rx="4" fill="#374151" />
+  <rect x="200" y="190" width="100" height="15" rx="3" fill="#4b5563" />
+  
+  <!-- Arrow 2 -->
+  <line x1="290" y1="100" x2="360" y2="100" stroke="#8b5cf6" stroke-width="3" marker-end="url(#arrowhead)" />
+  
+  <!-- Step 3 -->
+  <circle cx="400" cy="100" r="40" fill="#10b981" />
+  <text x="400" y="105" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">3</text>
+  <rect x="360" y="160" width="80" height="20" rx="4" fill="#374151" />
+  <rect x="350" y="190" width="100" height="15" rx="3" fill="#4b5563" />
+  
+  <!-- Chart visualization -->
+  <rect x="100" y="250" width="300" height="120" rx="8" fill="#16213e" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+  <polyline points="120,340 160,300 200,320 240,280 280,290 320,260 360,270 380,250" 
+            fill="none" stroke="#6366f1" stroke-width="2" />
+  <circle cx="120" cy="340" r="3" fill="#6366f1" />
+  <circle cx="160" cy="300" r="3" fill="#6366f1" />
+  <circle cx="200" cy="320" r="3" fill="#6366f1" />
+  <circle cx="240" cy="280" r="3" fill="#6366f1" />
+  <circle cx="280" cy="290" r="3" fill="#6366f1" />
+  <circle cx="320" cy="260" r="3" fill="#6366f1" />
+  <circle cx="360" cy="270" r="3" fill="#6366f1" />
+  <circle cx="380" cy="250" r="3" fill="#6366f1" />
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6366f1" />
+    </marker>
+  </defs>
+</svg>

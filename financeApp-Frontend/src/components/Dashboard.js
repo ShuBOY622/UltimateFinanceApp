@@ -40,9 +40,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { alpha } from '@mui/material/styles';
 import { useAuth } from '../contexts/AuthContext';
-import { transactionAPI, investmentAPI, budgetAPI, goalAPI, advisorAPI } from '../services/api';
+import { transactionAPI, investmentAPI, budgetAPI, goalAPI, advisorAPI, subscriptionAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
 import SpendingChart from './Charts/SpendingChart';
+import SubscriptionTracker from './Subscriptions/SubscriptionTracker';
 
 const COLORS = ['#667eea', '#764ba2', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
 
@@ -322,6 +323,7 @@ const Dashboard = () => {
         transactionsRes,
         adviceRes,
         lastMonthSummaryRes,
+        subscriptionsRes,
       ] = await Promise.allSettled([
         transactionAPI.getSummary(),
         investmentAPI.getPortfolioSummary(),
@@ -331,6 +333,7 @@ const Dashboard = () => {
         transactionAPI.getAll(),
         advisorAPI.getAdvice(),
         transactionAPI.getMonthlySummary(1), // Last month data for comparison
+        subscriptionAPI.getUpcoming(),
       ]);
 
       setData({
@@ -346,6 +349,7 @@ const Dashboard = () => {
         transactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value.data.slice(0, 10) : [],
         advice: adviceRes.status === 'fulfilled' ? adviceRes.value.data : null,
         lastMonthSummary: lastMonthSummaryRes.status === 'fulfilled' ? lastMonthSummaryRes.value.data : null,
+        subscriptions: subscriptionsRes.status === 'fulfilled' ? subscriptionsRes.value.data : [],
       });
     } catch (error) {
       console.error('Dashboard error:', error);
@@ -354,6 +358,14 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
+  // Expose refresh function globally for child components
+  useEffect(() => {
+    window.refreshDashboardData = fetchDashboardData;
+    return () => {
+      delete window.refreshDashboardData;
+    };
+  }, []);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -999,14 +1011,25 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Goals and Recent Transactions */}
+      {/* Goals, Subscription Tracker and Recent Transactions */}
       <Grid container spacing={3}>
-        {/* Recent Transactions */}
-        <Grid item xs={12}>
+        {/* Subscription Tracker */}
+        <Grid item xs={12} md={6}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
+          >
+            <SubscriptionTracker />
+          </motion.div>
+        </Grid>
+        
+        {/* Recent Transactions */}
+        <Grid item xs={12} md={6}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.9 }}
           >
             <Card sx={{ height: '450px' }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1026,7 +1049,7 @@ const Dashboard = () => {
                           key={transaction.id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
+                          transition={{ duration: 0.3, delay: 1.0 + index * 0.1 }}
                         >
                           <Box 
                             display="flex" 

@@ -1,4 +1,4 @@
-# FinanceApp - Personal Finance Manager
+# Finora - Personal Finance Tracker
 
 A comprehensive personal finance application built with React and Spring Boot, featuring AI-powered financial advice, interactive dashboards, goal tracking, and reward systems.
 

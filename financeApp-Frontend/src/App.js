@@ -15,10 +15,12 @@ import {
   Upload as StatementsIcon,
   Logout as LogoutIcon,
   Person as PersonIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Receipt as ReceiptIcon
 } from '@mui/icons-material';
 
 // Components
+import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
@@ -28,6 +30,7 @@ import Goals from './components/Goals/Goals';
 import Transactions from './components/Transactions/Transactions';
 import StatementUpload from './components/Statements/StatementUpload';
 import Profile from './components/Profile/Profile';
+import SubscriptionsPage from './components/Subscriptions/SubscriptionsPage';
 
 // Context
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -48,6 +51,7 @@ function App() {
           >
             <AnimatePresence mode="wait">
               <Routes>
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/*" element={<AuthenticatedApp />} />
@@ -96,6 +100,7 @@ function AuthenticatedApp() {
     { text: 'Investments', icon: <InvestmentsIcon />, path: '/investments' },
     { text: 'Budget', icon: <BudgetIcon />, path: '/budget' },
     { text: 'Goals', icon: <GoalsIcon />, path: '/goals' },
+    { text: 'Subscriptions', icon: <ReceiptIcon />, path: '/subscriptions' },
     { text: 'Transactions', icon: <TransactionsIcon />, path: '/transactions' },
   ];
 
@@ -125,9 +130,10 @@ function AuthenticatedApp() {
           backdropFilter: 'blur(20px)',
           border: 'none',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          height: '80px',
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ height: '80px' }}>
           <IconButton
             color="inherit"
             onClick={() => setDrawerOpen(!drawerOpen)}
@@ -141,15 +147,21 @@ function AuthenticatedApp() {
           >
             {drawerOpen ? <CloseIcon /> : <MenuIcon />}
           </IconButton>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
-              Finance App
-            </Typography>
-          </motion.div>
+          <div>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <img 
+                src="/finora.png" 
+                alt="Finora Logo" 
+                style={{ 
+                  height: 120, 
+                  width: 'auto',
+                  display: 'block',
+                  objectFit: 'contain',
+                  maxHeight: 120
+                }}
+              />
+            </Box>
+          </div>
           <Box sx={{ flexGrow: 1 }} />
           <Button
             onClick={handleUserMenuOpen}
@@ -235,7 +247,7 @@ function AuthenticatedApp() {
           },
         }}
       >
-        <Toolbar /> {/* Spacer for app bar */}
+        <Toolbar sx={{ height: '80px' }} /> {/* Spacer for app bar */}
         <List sx={{ px: 2, py: 2 }}>
           {menuItems.map((item, index) => {
             const isActive = location.pathname === item.path;
@@ -407,6 +419,20 @@ function AuthenticatedApp() {
                     transition={{ duration: 0.3 }}
                   >
                     <Profile />
+                  </motion.div>
+                } 
+              />
+              <Route 
+                path="/subscriptions" 
+                element={
+                  <motion.div
+                    key="subscriptions"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <SubscriptionsPage />
                   </motion.div>
                 } 
               />

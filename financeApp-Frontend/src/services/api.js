@@ -221,6 +221,16 @@ export const goalAPI = {
   delete: (id) => api.delete(`/goals/${id}`),
 };
 
+export const subscriptionAPI = {
+  getAll: () => api.get('/subscriptions'),
+  create: (subscription) => api.post('/subscriptions', subscription),
+  update: (id, subscription) => api.put(`/subscriptions/${id}`, subscription),
+  delete: (id) => api.delete(`/subscriptions/${id}`),
+  getUpcoming: (date) => api.get(`/subscriptions/upcoming?date=${date}`),
+  getTotalUpcoming: (date) => api.get(`/subscriptions/upcoming/total?date=${date}`),
+  markAsPaid: (id) => api.post(`/subscriptions/${id}/mark-paid`),
+};
+
 export const advisorAPI = {
   getAdvice: () => api.get('/advisor/advice'),
   getRecommendations: () => api.get('/advisor/recommendations'),

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Finance App now supports comprehensive parsing of Kotak Mahindra Bank statements in multiple formats (PDF, CSV, Excel). This feature allows users to automatically import their bank transactions with accurate categorization and duplicate detection.
+The Finora now supports comprehensive parsing of Kotak Mahindra Bank statements in multiple formats (PDF, CSV, Excel). This feature allows users to automatically import their bank transactions with accurate categorization and duplicate detection.
 
 ## Supported Features
 
@@ -24,7 +24,7 @@ The Finance App now supports comprehensive parsing of Kotak Mahindra Bank statem
 ## How to Use
 
 ### Step 1: Access Statement Upload
-1. Navigate to the "Statements" section in the Finance App
+1. Navigate to the "Statements" section in the Finora
 2. Click on "Upload Statement" or drag & drop your file
 
 ### Step 2: Select Statement Type
