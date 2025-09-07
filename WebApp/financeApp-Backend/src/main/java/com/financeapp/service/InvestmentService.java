@@ -24,9 +24,12 @@ public class InvestmentService {
 
     @Autowired
     private YahooFinanceService yahooFinanceService;
-    
+
     @Autowired
     private StockSymbolLoaderService stockSymbolLoaderService;
+
+    @Autowired
+    private MutualFundService mutualFundService;
 
     @Value("${investment.price-update.enabled:true}")
     private boolean priceUpdateEnabled;
@@ -52,55 +55,66 @@ public class InvestmentService {
         investment.setLivePriceEnabled(true);
         investment.setLastPriceError(null);
         
-        // Smart price fetching based on API availability and symbol support
-        if (priceUpdateEnabled && yahooFinanceService.isApiAvailable() && 
-            yahooFinanceService.isSymbolSupported(investment.getSymbol())) {
-            
+        // Smart price fetching based on investment type and API availability
+        if (priceUpdateEnabled) {
             try {
-                // Fetch current price for real-time market value
-                BigDecimal currentPrice = yahooFinanceService.getCurrentPrice(investment.getSymbol());
-                
+                BigDecimal currentPrice = null;
+
+                if (InvestmentType.MUTUAL_FUND.equals(investment.getType())) {
+                    // Fetch NAV for mutual funds
+                    currentPrice = mutualFundService.getCurrentNav(investment.getSymbol());
+                    if (currentPrice != null) {
+                        investment.setPriceSource("AMFI_NAV");
+                    }
+                } else if (InvestmentType.STOCK.equals(investment.getType())) {
+                    // Fetch price for stocks
+                    if (yahooFinanceService.isApiAvailable() &&
+                        yahooFinanceService.isSymbolSupported(investment.getSymbol())) {
+                        currentPrice = yahooFinanceService.getCurrentPrice(investment.getSymbol());
+                        if (currentPrice != null) {
+                            investment.setPriceSource("YAHOO_FINANCE");
+                        }
+                    }
+                }
+
                 if (currentPrice != null) {
                     // If no purchase price provided, use current price as baseline
                     if (investment.getPurchasePrice() == null) {
                         investment.setPurchasePrice(currentPrice);
-                        investment.setPriceSource("YAHOO_AUTO");
+                        investment.setPriceSource(investment.getPriceSource() + "_AUTO");
                         System.out.println("Auto-set purchase price for " + investment.getSymbol() + ": " + currentPrice);
                     }
-                    
+
                     // Always set current price from live data
                     investment.setCurrentPrice(currentPrice);
                     investment.setLastPriceUpdate(LocalDateTime.now());
-                    investment.setPriceSource("YAHOO_FINANCE");
+                    investment.setLastPriceError(null);
                 } else {
-                    // API failed, use manual prices
+                    // Price fetch failed, use manual prices
                     if (investment.getCurrentPrice() == null) {
                         investment.setCurrentPrice(investment.getPurchasePrice());
                     }
-                    investment.setLastPriceError("Live price unavailable for " + investment.getSymbol());
+
+                    String errorMessage = getPriceFetchErrorMessage(investment);
+                    investment.setLastPriceError(errorMessage);
                 }
             } catch (Exception e) {
                 // Handle API errors gracefully
                 if (investment.getCurrentPrice() == null) {
                     investment.setCurrentPrice(investment.getPurchasePrice());
                 }
-                
+
                 String errorMessage = e.getMessage();
                 investment.setLastPriceError("Price fetch failed: " + (errorMessage != null ? errorMessage.substring(0, Math.min(errorMessage.length(), 50)) : "Unknown error"));
-                
+
                 System.err.println("Error fetching price for " + investment.getSymbol() + ": " + errorMessage);
             }
         } else {
-            // API not available or symbol not supported - use manual pricing
+            // Price updates disabled - use manual pricing
             if (investment.getCurrentPrice() == null) {
                 investment.setCurrentPrice(investment.getPurchasePrice());
             }
-            
-            if (!yahooFinanceService.isApiAvailable()) {
-                investment.setLastPriceError("Yahoo Finance API not configured");
-            } else if (!yahooFinanceService.isSymbolSupported(investment.getSymbol())) {
-                investment.setLastPriceError("Symbol " + investment.getSymbol() + " not supported by Yahoo Finance");
-            }
+            investment.setLastPriceError("Live price updates are disabled");
         }
         
         Investment savedInvestment = investmentRepository.save(investment);
@@ -116,6 +130,10 @@ public class InvestmentService {
 
     public List<Investment> getUserInvestments(User user) {
         return investmentRepository.findByUserOrderByCreatedAtDesc(user);
+    }
+
+    public List<Investment> getInvestmentsByType(User user, InvestmentType type) {
+        return investmentRepository.findByUserAndTypeOrderByCreatedAtDesc(user, type);
     }
 
     public Optional<Investment> getInvestmentById(Long id, User user) {
@@ -214,6 +232,10 @@ public class InvestmentService {
         return summary;
     }
 
+    public List<Investment> getUserInvestmentsByType(User user, InvestmentType type) {
+        return investmentRepository.findByUserAndTypeOrderByCreatedAtDesc(user, type);
+    }
+
     public Map<String, Object> getPortfolioDistribution(User user) {
         Map<String, Object> distribution = new HashMap<>();
         
@@ -269,55 +291,105 @@ public class InvestmentService {
         return performance;
     }
 
-    public List<Map<String, Object>> getInvestmentsByType(User user, InvestmentType type) {
+    public List<Map<String, Object>> getFormattedInvestmentsByType(User user, InvestmentType type) {
         List<Investment> investments = investmentRepository.findByUserAndTypeOrderByCreatedAtDesc(user, type);
         return investments.stream()
                 .map(this::investmentToMap)
                 .collect(Collectors.toList());
     }
 
-    // Live Market Data Integration using Yahoo Finance API
+    // Live Market Data Integration using Yahoo Finance API and AMFI
     public void updateMarketPrices(User user) {
         if (!priceUpdateEnabled) {
             return;
         }
-        
+
         List<Investment> investments = investmentRepository.findByUserOrderByCreatedAtDesc(user)
                 .stream()
                 .filter(inv -> inv.getLivePriceEnabled() != null && inv.getLivePriceEnabled())
                 .collect(Collectors.toList());
-        
+
         if (investments.isEmpty()) {
             return;
         }
-        
+
+        // Separate investments by type
+        List<Investment> stockInvestments = investments.stream()
+                .filter(inv -> InvestmentType.STOCK.equals(inv.getType()))
+                .collect(Collectors.toList());
+
+        List<Investment> mutualFundInvestments = investments.stream()
+                .filter(inv -> InvestmentType.MUTUAL_FUND.equals(inv.getType()))
+                .collect(Collectors.toList());
+
+        // Update stock prices
+        if (!stockInvestments.isEmpty()) {
+            updateStockPrices(stockInvestments);
+        }
+
+        // Update mutual fund NAVs
+        if (!mutualFundInvestments.isEmpty()) {
+            updateMutualFundPrices(mutualFundInvestments, user);
+        }
+    }
+
+    // Update stock prices using Yahoo Finance
+    private void updateStockPrices(List<Investment> stockInvestments) {
         // Group investments by symbol to avoid duplicate API calls
-        Map<String, List<Investment>> investmentsBySymbol = investments.stream()
+        Map<String, List<Investment>> investmentsBySymbol = stockInvestments.stream()
                 .collect(Collectors.groupingBy(Investment::getSymbol));
-        
+
         // Get all unique symbols
         List<String> symbols = new ArrayList<>(investmentsBySymbol.keySet());
-        
+
         try {
             // Fetch current prices for all symbols at once
             Map<String, BigDecimal> currentPrices = yahooFinanceService.getCurrentPrices(symbols);
-            
+
             // Update each investment with fetched prices
             for (Map.Entry<String, List<Investment>> entry : investmentsBySymbol.entrySet()) {
                 String symbol = entry.getKey();
                 List<Investment> symbolInvestments = entry.getValue();
                 BigDecimal currentPrice = currentPrices.get(symbol);
-                
+
                 for (Investment investment : symbolInvestments) {
-                    updateInvestmentPrice(investment, currentPrice, symbol);
+                    updateInvestmentPrice(investment, currentPrice, symbol, "YAHOO_FINANCE");
                 }
             }
-            
+
         } catch (Exception e) {
-            System.err.println("Error updating market prices: " + e.getMessage());
-            // Mark all investments with error
-            for (Investment investment : investments) {
-                investment.setLastPriceError("Price update failed: " + e.getMessage());
+            System.err.println("Error updating stock prices: " + e.getMessage());
+            // Mark all stock investments with error
+            for (Investment investment : stockInvestments) {
+                investment.setLastPriceError("Stock price update failed: " + e.getMessage());
+                investmentRepository.save(investment);
+            }
+        }
+    }
+
+    // Update mutual fund NAVs using AMFI
+    private void updateMutualFundPrices(List<Investment> mutualFundInvestments, User user) {
+        try {
+            for (Investment investment : mutualFundInvestments) {
+                try {
+                    BigDecimal currentNav = mutualFundService.getCurrentNav(investment.getSymbol());
+                    BigDecimal dailyReturn = mutualFundService.getDailyReturn(investment.getSymbol());
+
+                    updateInvestmentPrice(investment, currentNav, investment.getSymbol(), "AMFI_NAV");
+
+                    // Update daily return
+                    investment.setDailyReturn(dailyReturn);
+                    investmentRepository.save(investment);
+                } catch (Exception e) {
+                    investment.setLastPriceError("NAV fetch failed: " + e.getMessage());
+                    investmentRepository.save(investment);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error updating mutual fund NAVs: " + e.getMessage());
+            // Mark all mutual fund investments with error
+            for (Investment investment : mutualFundInvestments) {
+                investment.setLastPriceError("Mutual fund NAV update failed: " + e.getMessage());
                 investmentRepository.save(investment);
             }
         }
@@ -328,10 +400,20 @@ public class InvestmentService {
         if (!priceUpdateEnabled || !investment.getLivePriceEnabled()) {
             return;
         }
-        
+
         try {
-            BigDecimal currentPrice = yahooFinanceService.getCurrentPrice(investment.getSymbol());
-            updateInvestmentPrice(investment, currentPrice, investment.getSymbol());
+            BigDecimal currentPrice = null;
+            String priceSource = null;
+
+            if (InvestmentType.MUTUAL_FUND.equals(investment.getType())) {
+                currentPrice = mutualFundService.getCurrentNav(investment.getSymbol());
+                priceSource = "AMFI_NAV";
+            } else if (InvestmentType.STOCK.equals(investment.getType())) {
+                currentPrice = yahooFinanceService.getCurrentPrice(investment.getSymbol());
+                priceSource = "YAHOO_FINANCE";
+            }
+
+            updateInvestmentPrice(investment, currentPrice, investment.getSymbol(), priceSource);
         } catch (Exception e) {
             investment.setLastPriceError("Price fetch failed: " + e.getMessage());
             investmentRepository.save(investment);
@@ -340,9 +422,14 @@ public class InvestmentService {
     
     // Helper method to update investment price with proper tracking
     private void updateInvestmentPrice(Investment investment, BigDecimal currentPrice, String symbol) {
+        updateInvestmentPrice(investment, currentPrice, symbol, null);
+    }
+
+    // Helper method to update investment price with proper tracking and custom source
+    private void updateInvestmentPrice(Investment investment, BigDecimal currentPrice, String symbol, String priceSource) {
         if (currentPrice != null && currentPrice.compareTo(BigDecimal.ZERO) > 0) {
             investment.setCurrentPrice(currentPrice);
-            investment.setPriceSource("YAHOO_FINANCE");
+            investment.setPriceSource(priceSource != null ? priceSource : "YAHOO_FINANCE");
             investment.setLastPriceUpdate(LocalDateTime.now());
             investment.setLastPriceError(null);
         } else {
@@ -350,18 +437,18 @@ public class InvestmentService {
             investment.setPriceSource("FALLBACK");
             investment.setLastPriceError("Live price unavailable for " + symbol);
         }
-        
+
         investment.setUpdatedAt(LocalDateTime.now());
         investmentRepository.save(investment);
     }
 
-    // Get suggested stocks/popular investments (using Yahoo Finance supported symbols)
+    // Get suggested stocks and mutual funds/popular investments
     public List<Map<String, String>> getPopularInvestments() {
         List<Map<String, String>> suggestions = new ArrayList<>();
-        
-        // Get supported symbols from Yahoo Finance service
+
+        // Get popular stocks
         List<String> supportedSymbols = yahooFinanceService.getSupportedSymbols();
-        
+
         // Popular Indian stocks with full names
         Map<String, String> stockNames = new HashMap<>();
         stockNames.put("RELIANCE", "Reliance Industries Ltd");
@@ -379,7 +466,7 @@ public class InvestmentService {
         stockNames.put("ASIANPAINT", "Asian Paints Ltd");
         stockNames.put("MARUTI", "Maruti Suzuki India Ltd");
         stockNames.put("AXISBANK", "Axis Bank Ltd");
-        
+
         for (String symbol : supportedSymbols) {
             if (stockNames.containsKey(symbol)) {
                 Map<String, String> suggestion = new HashMap<>();
@@ -390,7 +477,15 @@ public class InvestmentService {
                 suggestions.add(suggestion);
             }
         }
-        
+
+        // Get popular mutual funds
+        try {
+            List<Map<String, String>> popularMFs = mutualFundService.getPopularMutualFunds();
+            suggestions.addAll(popularMFs);
+        } catch (Exception e) {
+            System.err.println("Error fetching popular mutual funds: " + e.getMessage());
+        }
+
         return suggestions;
     }
     
@@ -401,32 +496,62 @@ public class InvestmentService {
         status.put("priceUpdateEnabled", priceUpdateEnabled);
         status.put("supportedSymbolsCount", yahooFinanceService.getSupportedSymbols().size());
         status.put("marketOpen", yahooFinanceService.isMarketOpen());
+
+        // Add mutual fund service status
+        try {
+            Map<String, Object> mfStatus = mutualFundService.getServiceStatus();
+            status.put("mutualFundServiceAvailable", mfStatus.get("available"));
+            status.put("mutualFundCacheSize", mfStatus.get("cachedEntries"));
+            status.put("mutualFundLastUpdate", mfStatus.get("lastUpdate"));
+        } catch (Exception e) {
+            status.put("mutualFundServiceAvailable", false);
+            status.put("mutualFundCacheSize", 0);
+            status.put("mutualFundLastUpdate", null);
+        }
+
         return status;
     }
     
-    // Stock Search for Autocomplete
-    public List<Map<String, Object>> searchStocks(String query) {
+    // Investment Search for Autocomplete (Stocks and Mutual Funds)
+    public List<Map<String, Object>> searchInvestments(String query) {
         List<Map<String, Object>> results = new ArrayList<>();
-        
+
         if (query == null || query.trim().length() < 2) {
             return results;
         }
-        
-        // Use the StockSymbolLoaderService to search stocks from the database
-        List<StockSymbol> stockSymbols = stockSymbolLoaderService.searchSymbols(query);
-        
-        // Convert StockSymbol entities to the expected Map format
-        for (StockSymbol stockSymbol : stockSymbols) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("symbol", stockSymbol.getSymbol());
-            result.put("name", stockSymbol.getCompanyName());
-            result.put("sector", stockSymbol.getSector());
-            result.put("type", "STOCK");
-            result.put("exchange", "NSE");
-            results.add(result);
+
+        // Search stocks using StockSymbolLoaderService
+        try {
+            List<StockSymbol> stockSymbols = stockSymbolLoaderService.searchSymbols(query);
+            for (StockSymbol stockSymbol : stockSymbols) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("symbol", stockSymbol.getSymbol());
+                result.put("name", stockSymbol.getCompanyName());
+                result.put("sector", stockSymbol.getSector());
+                result.put("type", "STOCK");
+                result.put("exchange", "NSE");
+                results.add(result);
+            }
+        } catch (Exception e) {
+            System.err.println("Error searching stocks: " + e.getMessage());
         }
-        
+
+        // Search mutual funds using MutualFundService
+        try {
+            List<Map<String, Object>> mutualFundResults = mutualFundService.searchMutualFunds(query);
+            results.addAll(mutualFundResults);
+        } catch (Exception e) {
+            System.err.println("Error searching mutual funds: " + e.getMessage());
+        }
+
         return results;
+    }
+
+    // Stock Search for Autocomplete (legacy method for backward compatibility)
+    public List<Map<String, Object>> searchStocks(String query) {
+        return searchInvestments(query).stream()
+                .filter(result -> "STOCK".equals(result.get("type")))
+                .collect(Collectors.toList());
     }
     
     // Get current price for a specific symbol
@@ -455,6 +580,27 @@ public class InvestmentService {
         return result;
     }
     
+    // Helper method to get appropriate error message for price fetch failures
+    private String getPriceFetchErrorMessage(Investment investment) {
+        if (InvestmentType.MUTUAL_FUND.equals(investment.getType())) {
+            return "NAV not available for " + investment.getSymbol() + " from AMFI";
+        } else if (InvestmentType.STOCK.equals(investment.getType())) {
+            if (!yahooFinanceService.isApiAvailable()) {
+                return "Yahoo Finance API not configured";
+            } else if (!yahooFinanceService.isSymbolSupported(investment.getSymbol())) {
+                return "Symbol " + investment.getSymbol() + " not supported by Yahoo Finance";
+            } else {
+                return "Live price unavailable for " + investment.getSymbol();
+            }
+        }
+        return "Price fetch failed for " + investment.getSymbol();
+    }
+
+    // Getter for MutualFundService (for controller access)
+    public MutualFundService getMutualFundService() {
+        return mutualFundService;
+    }
+
     // Helper method to convert Investment to Map for API responses
     private Map<String, Object> investmentToMap(Investment investment) {
         Map<String, Object> map = new HashMap<>();
@@ -482,7 +628,8 @@ public class InvestmentService {
         map.put("priceSource", investment.getPriceSource());
         map.put("livePriceEnabled", investment.getLivePriceEnabled());
         map.put("lastPriceError", investment.getLastPriceError());
-        
+        map.put("dailyReturn", investment.getDailyReturn());
+
         return map;
     }
 }

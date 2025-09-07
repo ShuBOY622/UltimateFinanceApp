@@ -79,6 +79,10 @@ public class Investment {
     @Column(length = 100)
     private String lastPriceError; // Store last error message if price fetch fails
 
+    // Daily return calculation (for mutual funds)
+    @Column(precision = 10, scale = 4)
+    private BigDecimal dailyReturn;
+
     // Constructors
     public Investment() {}
 
@@ -148,6 +152,9 @@ public class Investment {
 
     public String getLastPriceError() { return lastPriceError; }
     public void setLastPriceError(String lastPriceError) { this.lastPriceError = lastPriceError; }
+
+    public BigDecimal getDailyReturn() { return dailyReturn; }
+    public void setDailyReturn(BigDecimal dailyReturn) { this.dailyReturn = dailyReturn; }
 
     // Calculated fields
     public BigDecimal getTotalInvestment() {

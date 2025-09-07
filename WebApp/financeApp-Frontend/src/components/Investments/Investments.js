@@ -131,12 +131,15 @@ const Investments = () => {
   const [updatingPrices, setUpdatingPrices] = useState(false);
   const [stockSuggestions, setStockSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [filterType, setFilterType] = useState('ALL');
   const [formData, setFormData] = useState({
     symbol: '',
     name: '',
     type: 'STOCK',
     quantity: '',
     purchasePrice: '',
+    amountInvested: '', // For mutual funds
+    averageNav: '', // For mutual funds
     purchaseDate: dayjs(),
     sector: '',
     notes: ''
@@ -150,9 +153,17 @@ const Investments = () => {
     fetchPriceUpdateStatus();
   }, []);
 
+  useEffect(() => {
+    fetchInvestments();
+  }, [filterType]);
+
   const fetchInvestments = async () => {
     try {
-      const response = await api.get('/investments');
+      let endpoint = '/investments';
+      if (filterType !== 'ALL') {
+        endpoint += `?type=${filterType}`;
+      }
+      const response = await api.get(endpoint);
       setInvestments(response.data);
     } catch (error) {
       toast.error('Failed to load investments');
@@ -180,7 +191,7 @@ const Investments = () => {
     }
   };
 
-  const searchStocks = async (query) => {
+  const searchInvestments = async (query) => {
     if (!query || query.length < 2) {
       setStockSuggestions([]);
       return;
@@ -188,38 +199,50 @@ const Investments = () => {
 
     try {
       setLoadingSuggestions(true);
-      const response = await api.get(`/investments/search-stocks?query=${encodeURIComponent(query)}`);
+      const response = await api.get(`/investments/search-investments?query=${encodeURIComponent(query)}`);
       setStockSuggestions(response.data || []);
     } catch (error) {
-      console.error('Stock search error:', error);
+      console.error('Investment search error:', error);
       setStockSuggestions([]);
     } finally {
       setLoadingSuggestions(false);
     }
   };
 
-  const handleStockSelect = async (stock) => {
-    if (stock) {
+  const handleInvestmentSelect = async (investment) => {
+    if (investment) {
       setFormData({
         ...formData,
-        symbol: stock.symbol,
-        name: stock.name,
-        sector: stock.sector || '',
-        type: stock.type || 'STOCK'
+        symbol: investment.symbol,
+        name: investment.name,
+        sector: investment.sector || '',
+        type: investment.type || 'STOCK'
       });
-      
-      // Try to fetch current price
+
+      // Try to fetch current price/NAV
       try {
-        const priceResponse = await api.get(`/investments/current-price/${stock.symbol}`);
-        if (priceResponse.data?.price) {
-          setFormData(prev => ({
-            ...prev,
-            purchasePrice: priceResponse.data.price.toString()
-          }));
-          toast.success(`Current price fetched: ₹${priceResponse.data.price}`);
+        if (investment.type === 'MUTUAL_FUND') {
+          // For mutual funds, we already have NAV from the search result
+          if (investment.nav) {
+            setFormData(prev => ({
+              ...prev,
+              averageNav: investment.nav.toString()
+            }));
+            toast.success(`Current NAV fetched: ₹${investment.nav}`);
+          }
+        } else {
+          // For stocks, fetch current price
+          const priceResponse = await api.get(`/investments/current-price/${investment.symbol}`);
+          if (priceResponse.data?.price) {
+            setFormData(prev => ({
+              ...prev,
+              purchasePrice: priceResponse.data.price.toString()
+            }));
+            toast.success(`Current price fetched: ₹${priceResponse.data.price}`);
+          }
         }
       } catch (error) {
-        console.log('Could not fetch current price:', error);
+        console.log('Could not fetch current price/NAV:', error);
       }
     }
   };
@@ -283,16 +306,36 @@ const Investments = () => {
   const handleOpenDialog = (investment = null) => {
     if (investment) {
       setEditingInvestment(investment);
-      setFormData({
-        symbol: investment.symbol,
-        name: investment.name,
-        type: investment.type,
-        quantity: investment.quantity.toString(),
-        purchasePrice: investment.purchasePrice.toString(),
-        purchaseDate: dayjs(investment.purchaseDate),
-        sector: investment.sector || '',
-        notes: investment.notes || ''
-      });
+      if (investment.type === 'MUTUAL_FUND') {
+        // For mutual funds, calculate amount invested from quantity and purchase price
+        const amountInvested = investment.quantity * investment.purchasePrice;
+        setFormData({
+          symbol: investment.symbol,
+          name: investment.name,
+          type: investment.type,
+          quantity: investment.quantity.toString(),
+          purchasePrice: investment.purchasePrice.toString(),
+          amountInvested: amountInvested.toString(),
+          averageNav: investment.purchasePrice.toString(),
+          purchaseDate: dayjs(investment.purchaseDate),
+          sector: investment.sector || '',
+          notes: investment.notes || ''
+        });
+      } else {
+        // For stocks, use traditional fields
+        setFormData({
+          symbol: investment.symbol,
+          name: investment.name,
+          type: investment.type,
+          quantity: investment.quantity.toString(),
+          purchasePrice: investment.purchasePrice.toString(),
+          amountInvested: '',
+          averageNav: '',
+          purchaseDate: dayjs(investment.purchaseDate),
+          sector: investment.sector || '',
+          notes: investment.notes || ''
+        });
+      }
     } else {
       setEditingInvestment(null);
       setFormData({
@@ -301,6 +344,8 @@ const Investments = () => {
         type: 'STOCK',
         quantity: '',
         purchasePrice: '',
+        amountInvested: '',
+        averageNav: '',
         purchaseDate: dayjs(),
         sector: '',
         notes: ''
@@ -317,22 +362,55 @@ const Investments = () => {
   const handleSubmit = async () => {
     try {
       // Validate required fields
-      if (!formData.symbol?.trim() || !formData.name?.trim() || !formData.quantity || !formData.purchasePrice) {
-        toast.error('Please fill in all required fields (Symbol, Name, Quantity, Purchase Price)');
+      if (!formData.symbol?.trim() || !formData.name?.trim()) {
+        toast.error('Please fill in all required fields (Symbol, Name)');
         return;
       }
 
-      const quantity = parseFloat(formData.quantity);
-      const purchasePrice = parseFloat(formData.purchasePrice);
+      let quantity, purchasePrice;
 
-      if (isNaN(quantity) || quantity <= 0) {
-        toast.error('Quantity must be a valid positive number');
-        return;
-      }
+      if (formData.type === 'MUTUAL_FUND') {
+        // For mutual funds, validate amount invested and average NAV
+        if (!formData.amountInvested || !formData.averageNav) {
+          toast.error('Please fill in Amount Invested and Average NAV');
+          return;
+        }
 
-      if (isNaN(purchasePrice) || purchasePrice <= 0) {
-        toast.error('Purchase price must be a valid positive number');
-        return;
+        const amountInvested = parseFloat(formData.amountInvested);
+        const averageNav = parseFloat(formData.averageNav);
+
+        if (isNaN(amountInvested) || amountInvested <= 0) {
+          toast.error('Amount Invested must be a valid positive number');
+          return;
+        }
+
+        if (isNaN(averageNav) || averageNav <= 0) {
+          toast.error('Average NAV must be a valid positive number');
+          return;
+        }
+
+        // Calculate quantity (units) = amount invested / average NAV
+        quantity = amountInvested / averageNav;
+        purchasePrice = averageNav;
+      } else {
+        // For stocks, use traditional quantity and purchase price
+        if (!formData.quantity || !formData.purchasePrice) {
+          toast.error('Please fill in Quantity and Purchase Price');
+          return;
+        }
+
+        quantity = parseFloat(formData.quantity);
+        purchasePrice = parseFloat(formData.purchasePrice);
+
+        if (isNaN(quantity) || quantity <= 0) {
+          toast.error('Quantity must be a valid positive number');
+          return;
+        }
+
+        if (isNaN(purchasePrice) || purchasePrice <= 0) {
+          toast.error('Purchase price must be a valid positive number');
+          return;
+        }
       }
 
       if (!formData.purchaseDate || !formData.purchaseDate.isValid()) {
@@ -570,8 +648,13 @@ const Investments = () => {
           >
             <Typography variant="subtitle2">
               {apiStatus.yahooFinanceApiAvailable
-                ? `Live Price Updates: Active (${apiStatus.supportedSymbolsCount} symbols supported)`
-                : "Live Price Updates: Configure Yahoo Finance API for real-time price updates"}
+                ? `Stock Prices: Active (${apiStatus.supportedSymbolsCount} symbols supported)`
+                : "Stock Prices: Configure Yahoo Finance API for real-time price updates"}
+            </Typography>
+            <Typography variant="subtitle2">
+              {apiStatus.mutualFundServiceAvailable
+                ? `Mutual Fund NAVs: Active (${apiStatus.mutualFundCacheSize} funds cached)`
+                : "Mutual Fund NAVs: AMFI service unavailable"}
             </Typography>
             {!apiStatus.priceUpdateEnabled && (
               <Typography variant="body2" color="text.secondary">
@@ -633,9 +716,32 @@ const Investments = () => {
       >
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              Your Investments
-            </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" fontWeight="bold">
+                Your Investments
+              </Typography>
+              <TextField
+                select
+                size="small"
+                label="Filter by Type"
+                value={filterType}
+                onChange={(e) => {
+                  setFilterType(e.target.value);
+                  fetchInvestments();
+                }}
+                sx={{ width: 200 }}
+              >
+                <MenuItem value="ALL">All Investments</MenuItem>
+                <MenuItem value="STOCK">Stocks Only</MenuItem>
+                <MenuItem value="MUTUAL_FUND">Mutual Funds Only</MenuItem>
+                <MenuItem value="ETF">ETFs Only</MenuItem>
+                <MenuItem value="BOND">Bonds Only</MenuItem>
+                <MenuItem value="CRYPTO">Crypto Only</MenuItem>
+                <MenuItem value="GOLD">Gold Only</MenuItem>
+                <MenuItem value="REAL_ESTATE">Real Estate Only</MenuItem>
+                <MenuItem value="OTHER">Other</MenuItem>
+              </TextField>
+            </Box>
             
             {investments.length === 0 ? (
               <Box textAlign="center" py={4}>
@@ -778,16 +884,27 @@ const Investments = () => {
 
                           <Box display="flex" justifyContent="space-between" mb={1}>
                             <Typography variant="body2" color="text.secondary">
-                              Quantity:
+                              {investment.type === 'MUTUAL_FUND' ? 'Units:' : 'Quantity:'}
                             </Typography>
                             <Typography variant="body2" fontWeight="bold">
                               {investment.quantity}
                             </Typography>
                           </Box>
 
+                          {investment.type === 'MUTUAL_FUND' && (
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                              <Typography variant="body2" color="text.secondary">
+                                Amount Invested:
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {formatCurrency(investment.quantity * investment.purchasePrice)}
+                              </Typography>
+                            </Box>
+                          )}
+
                           <Box display="flex" justifyContent="space-between" mb={1}>
                             <Typography variant="body2" color="text.secondary">
-                              Purchase Price:
+                              {investment.type === 'MUTUAL_FUND' ? 'Average NAV:' : 'Purchase Price:'}
                             </Typography>
                             <Typography variant="body2">
                               {formatCurrency(investment.purchasePrice)}
@@ -796,7 +913,7 @@ const Investments = () => {
 
                           <Box display="flex" justifyContent="space-between" mb={1}>
                             <Typography variant="body2" color="text.secondary">
-                              Current Price:
+                              {investment.type === 'MUTUAL_FUND' ? 'Current NAV:' : 'Current Price:'}
                             </Typography>
                             <Typography variant="body2">
                               {formatCurrency(investment.currentPrice)}
@@ -807,7 +924,7 @@ const Investments = () => {
 
                           <Box display="flex" justifyContent="space-between" mb={1}>
                             <Typography variant="body2" color="text.secondary">
-                              Investment:
+                              {investment.type === 'MUTUAL_FUND' ? 'Total Invested:' : 'Investment:'}
                             </Typography>
                             <Typography variant="body2" fontWeight="bold">
                               {formatCurrency(investment.totalInvestment)}
@@ -818,8 +935,8 @@ const Investments = () => {
                             <Typography variant="body2" color="text.secondary">
                               Current Value:
                             </Typography>
-                            <Typography 
-                              variant="body2" 
+                            <Typography
+                              variant="body2"
                               fontWeight="bold"
                               sx={{
                                 color: calculatedProfit ? '#4caf50' : '#f44336'
@@ -829,7 +946,7 @@ const Investments = () => {
                             </Typography>
                           </Box>
 
-                          <Box display="flex" justifyContent="space-between" mb={2}>
+                          <Box display="flex" justifyContent="space-between" mb={1}>
                             <Typography variant="body2" color="text.secondary">
                               Gain/Loss:
                             </Typography>
@@ -854,6 +971,35 @@ const Investments = () => {
                               </Typography>
                             </Box>
                           </Box>
+
+                          {/* Daily Return for Mutual Funds */}
+                          {investment.type === 'MUTUAL_FUND' && investment.dailyReturn && (
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                              <Typography variant="body2" color="text.secondary">
+                                Daily Return:
+                              </Typography>
+                              <Box display="flex" alignItems="center" gap={0.5}>
+                                {investment.dailyReturn >= 0 ? (
+                                  <TrendingUp sx={{ fontSize: 16, color: '#4caf50' }} />
+                                ) : (
+                                  <TrendingDown sx={{ fontSize: 16, color: '#f44336' }} />
+                                )}
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  sx={{
+                                    color: investment.dailyReturn >= 0 ? '#4caf50' : '#f44336',
+                                    backgroundColor: investment.dailyReturn >= 0 ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: `1px solid ${investment.dailyReturn >= 0 ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`
+                                  }}
+                                >
+                                  {investment.dailyReturn >= 0 ? '+' : ''}{investment.dailyReturn.toFixed(2)}%
+                                </Typography>
+                              </Box>
+                            </Box>
+                          )}
 
                           <Box sx={{ mt: 2 }}>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
@@ -934,20 +1080,20 @@ const Investments = () => {
               <Autocomplete
                 fullWidth
                 options={stockSuggestions}
-                getOptionLabel={(option) => `${option.symbol} - ${option.name}`}
+                getOptionLabel={(option) => `${option.symbol || 'MF'} - ${option.name}`}
                 isOptionEqualToValue={(option, value) => option.symbol === value.symbol}
                 loading={loadingSuggestions}
                 onInputChange={(event, newInputValue) => {
-                  searchStocks(newInputValue);
-                }}
+                   searchInvestments(newInputValue);
+                 }}
                 onChange={(event, newValue) => {
-                  handleStockSelect(newValue);
+                  handleInvestmentSelect(newValue);
                 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Search Stock/Mutual Fund"
-                    placeholder="Start typing symbol or company name..."
+                    label="Search Investment"
+                    placeholder="Start typing symbol or name..."
                     required
                     InputProps={{
                       ...params.InputProps,
@@ -958,7 +1104,7 @@ const Investments = () => {
                         </>
                       ),
                     }}
-                    helperText="Search by symbol (e.g., RELIANCE) or company name (e.g., Reliance Industries)"
+                    helperText="Search by symbol (e.g., RELIANCE) or name (e.g., Reliance Industries)"
                   />
                 )}
                 renderOption={(props, option) => (
@@ -970,6 +1116,12 @@ const Investments = () => {
                       <Typography variant="caption" color="text.secondary">
                         {option.name} {option.sector ? `• ${option.sector}` : ''}
                       </Typography>
+                      <Chip
+                        label={option.type === 'MUTUAL_FUND' ? 'Mutual Fund' : 'Stock'}
+                        size="small"
+                        color={option.type === 'MUTUAL_FUND' ? 'secondary' : 'primary'}
+                        sx={{ mt: 0.5, fontSize: '0.7rem', height: '18px' }}
+                      />
                     </Box>
                   </Box>
                 )}
@@ -1022,27 +1174,56 @@ const Investments = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Quantity"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Purchase Price"
-                value={formData.purchasePrice}
-                onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-                required
-                helperText="Current market price will be fetched automatically"
-              />
-            </Grid>
+            {formData.type === 'MUTUAL_FUND' ? (
+              <>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Amount Invested"
+                    value={formData.amountInvested}
+                    onChange={(e) => setFormData({ ...formData, amountInvested: e.target.value })}
+                    required
+                    helperText="Total amount you invested in this mutual fund"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Average NAV"
+                    value={formData.averageNav}
+                    onChange={(e) => setFormData({ ...formData, averageNav: e.target.value })}
+                    required
+                    helperText="Average NAV at which you purchased the units"
+                  />
+                </Grid>
+              </>
+            ) : (
+              <>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Quantity"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Purchase Price"
+                    value={formData.purchasePrice}
+                    onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                    required
+                    helperText="Current market price will be fetched automatically"
+                  />
+                </Grid>
+              </>
+            )}
             <Grid item xs={12} md={6}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
@@ -1069,16 +1250,23 @@ const Investments = () => {
           {!editingInvestment && suggestions.length > 0 && (
             <Box mt={3}>
               <Typography variant="body2" color="text.secondary" mb={1}>
-                Popular Indian Stocks:
+                Popular Investments:
               </Typography>
               <Box display="flex" flexWrap="wrap" gap={1}>
-                {suggestions.slice(0, 10).map((suggestion) => (
+                {suggestions.slice(0, 12).map((suggestion) => (
                   <Chip
                     key={suggestion.symbol}
                     label={`${suggestion.symbol} - ${suggestion.name}`}
                     size="small"
                     onClick={() => handleSuggestionSelect(suggestion)}
-                    sx={{ cursor: 'pointer' }}
+                    sx={{
+                      cursor: 'pointer',
+                      backgroundColor: suggestion.type === 'MUTUAL_FUND' ? '#e3f2fd' : '#f3e5f5',
+                      '&:hover': {
+                        backgroundColor: suggestion.type === 'MUTUAL_FUND' ? '#bbdefb' : '#ce93d8'
+                      }
+                    }}
+                    icon={suggestion.type === 'MUTUAL_FUND' ? <PieChartIcon fontSize="small" /> : <ShowChart fontSize="small" />}
                   />
                 ))}
               </Box>

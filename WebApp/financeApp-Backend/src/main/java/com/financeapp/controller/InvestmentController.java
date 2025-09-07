@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -62,14 +63,20 @@ public class InvestmentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Investment>> getUserInvestments(Authentication authentication) {
+    public ResponseEntity<List<Investment>> getUserInvestments(@RequestParam(required = false) String type, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        List<Investment> investments = investmentService.getUserInvestments(user);
+        List<Investment> investments;
+        if (type != null && !type.equals("ALL")) {
+            InvestmentType typeEnum = InvestmentType.valueOf(type.toUpperCase());
+            investments = investmentService.getUserInvestmentsByType(user, typeEnum);
+        } else {
+            investments = investmentService.getUserInvestments(user);
+        }
         return ResponseEntity.ok(investments);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Investment> getInvestmentById(@PathVariable Long id, 
+    public ResponseEntity<Investment> getInvestmentById(@PathVariable Long id,
                                                       Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         Optional<Investment> investment = investmentService.getInvestmentById(id, user);
@@ -172,9 +179,9 @@ public class InvestmentController {
 
     @GetMapping("/type/{type}")
     public ResponseEntity<List<Map<String, Object>>> getInvestmentsByType(@PathVariable InvestmentType type,
-                                                                         Authentication authentication) {
+                                                                          Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        List<Map<String, Object>> investments = investmentService.getInvestmentsByType(user, type);
+        List<Map<String, Object>> investments = investmentService.getFormattedInvestmentsByType(user, type);
         return ResponseEntity.ok(investments);
     }
 
@@ -193,11 +200,33 @@ public class InvestmentController {
         return ResponseEntity.ok(suggestions);
     }
 
-    // Stock Search for Autocomplete
+    // Investment Search for Autocomplete (Stocks and Mutual Funds)
+    @GetMapping("/search-investments")
+    public ResponseEntity<List<Map<String, Object>>> searchInvestments(@RequestParam String query) {
+        List<Map<String, Object>> investmentSuggestions = investmentService.searchInvestments(query);
+        return ResponseEntity.ok(investmentSuggestions);
+    }
+
+    // Stock Search for Autocomplete (legacy endpoint for backward compatibility)
     @GetMapping("/search-stocks")
     public ResponseEntity<List<Map<String, Object>>> searchStocks(@RequestParam String query) {
         List<Map<String, Object>> stockSuggestions = investmentService.searchStocks(query);
         return ResponseEntity.ok(stockSuggestions);
+    }
+
+    // Mutual Fund Search for Autocomplete
+    @GetMapping("/search-mutual-funds")
+    public ResponseEntity<List<Map<String, Object>>> searchMutualFunds(@RequestParam String query) {
+        try {
+            // Use the searchInvestments method which already handles mutual funds
+            List<Map<String, Object>> allSuggestions = investmentService.searchInvestments(query);
+            List<Map<String, Object>> mutualFundSuggestions = allSuggestions.stream()
+                .filter(suggestion -> "MUTUAL_FUND".equals(suggestion.get("type")))
+                .collect(Collectors.toList());
+            return ResponseEntity.ok(mutualFundSuggestions);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(List.of(Map.of("error", "Failed to search mutual funds: " + e.getMessage())));
+        }
     }
     
     // Get Current Price for a Symbol
