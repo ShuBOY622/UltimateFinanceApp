@@ -1,0 +1,43 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/financeDb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: D3_87069_Shubham
+    password: root
+  
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  
+  
+server:
+  port: 8080
+
+jwt:
+  secret: mySecretKey123456789012345678901234567890
+  expiration: 86400000 # 24 hours
+
+logging:
+  level:
+    com.financeapp: DEBUG
+    org.springframework.security: DEBUG
+
+# Yahoo Finance API Configuration for live price fetching
+yahoo:
+  finance:
+    api:
+      base-url: https://query1.finance.yahoo.com/v8/finance/chart
+      enabled: true
+  
+# Investment Price Update Configuration
+investment:
+  price-update:
+    enabled: true
+    interval: 300000 # Update every 5 minutes (300,000 ms)
+    market-hours-only: true
